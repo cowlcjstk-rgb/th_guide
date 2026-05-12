@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import PlaceReviews from "@/components/place-reviews";
 import { getPlaceBySlug } from "@/lib/supabase";
 
 type Props = {
@@ -66,6 +67,8 @@ export default async function PlaceDetailPage({ params }: Props) {
           )}
         </aside>
       </div>
+
+      <PlaceReviews placeId={place.id} />
     </section>
   );
 }

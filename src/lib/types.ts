@@ -18,3 +18,19 @@ export type Place = {
   created_at: string;
   updated_at: string;
 };
+
+export type PlaceReview = {
+  id: string;
+  place_id: string;
+  nickname: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+};
+
+export type TripPlan = {
+  id: string;
+  title: string | null;
+  place_ids: string[];
+  created_at: string;
+};

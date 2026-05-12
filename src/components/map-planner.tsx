@@ -62,8 +62,19 @@ export default function MapPlanner({ places }: { places: Place[] }) {
   };
 
   const copyShareLink = async () => {
+    if (selectedIds.length < 2) return;
+    const res = await fetch("/api/trip-plans", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ place_ids: selectedIds }),
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const planId = data?.plan?.id;
+    if (!planId) return;
     const url = new URL(window.location.href);
     url.searchParams.set("plan", selectedIds.join(","));
+    url.searchParams.set("planId", planId);
     await navigator.clipboard.writeText(url.toString());
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
