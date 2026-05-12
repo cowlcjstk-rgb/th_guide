@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" className={`${geistSans.variable} h-full antialiased`}>
-      <body className="mesh-bg min-h-full text-slate-900">
+      <body suppressHydrationWarning className="mesh-bg min-h-full text-slate-900">
         <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 backdrop-blur-md">
           <nav className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3">
             <Link href="/" className="text-sm font-bold tracking-tight text-slate-900">
