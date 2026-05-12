@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { slugify } from "@/lib/utils";
 
 type CreatePlaceBody = {
   name: string;
@@ -12,6 +13,8 @@ type CreatePlaceBody = {
   latitude?: number;
   longitude?: number;
   google_map_url?: string;
+  tips?: string;
+  is_featured?: boolean;
   is_published?: boolean;
 };
 
@@ -34,12 +37,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "name, slug are required" }, { status: 400 });
   }
 
+  const cleanedSlug = slugify(body.slug || body.name);
+
   const supabase = createClient(url, serviceRole);
   const { data, error } = await supabase
     .from("places")
     .insert({
       name: body.name,
-      slug: body.slug,
+      slug: cleanedSlug,
       description: body.description ?? null,
       address: body.address ?? null,
       district: body.district ?? null,
@@ -48,7 +53,10 @@ export async function POST(req: NextRequest) {
       latitude: body.latitude ?? null,
       longitude: body.longitude ?? null,
       google_map_url: body.google_map_url ?? null,
+      tips: body.tips ?? null,
+      is_featured: body.is_featured ?? false,
       is_published: body.is_published ?? false,
+      last_verified_at: new Date().toISOString(),
     })
     .select("id, name, slug")
     .single();

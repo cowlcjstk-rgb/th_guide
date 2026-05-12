@@ -18,6 +18,7 @@ export async function getPublishedPlaces(): Promise<Place[]> {
     .from("places")
     .select("*")
     .eq("is_published", true)
+    .order("is_featured", { ascending: false })
     .order("created_at", { ascending: false });
 
   if (error || !data) return mockPlaces;

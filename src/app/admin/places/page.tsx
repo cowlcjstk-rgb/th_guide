@@ -1,14 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-
-function slugify(input: string) {
-  return input
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-");
-}
+import { slugify } from "@/lib/utils";
 
 export default function AdminPlacesPage() {
   const [name, setName] = useState("");
@@ -18,14 +11,20 @@ export default function AdminPlacesPage() {
   const [description, setDescription] = useState("");
   const [address, setAddress] = useState("");
   const [tags, setTags] = useState("");
+  const [tips, setTips] = useState("");
+  const [googleMapUrl, setGoogleMapUrl] = useState("");
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
+  const [featured, setFeatured] = useState(false);
+  const [published, setPublished] = useState(true);
   const [adminToken, setAdminToken] = useState("");
   const [result, setResult] = useState("");
+  const [pending, setPending] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    setResult("저장 중...");
+    setPending(true);
+    setResult("Saving...");
 
     const res = await fetch("/api/admin/places", {
       method: "POST",
@@ -40,42 +39,48 @@ export default function AdminPlacesPage() {
         category,
         description,
         address,
+        tips,
+        google_map_url: googleMapUrl || null,
         tags: tags
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean),
         latitude: latitude ? Number(latitude) : null,
         longitude: longitude ? Number(longitude) : null,
-        is_published: true,
+        is_featured: featured,
+        is_published: published,
       }),
     });
 
     const data = await res.json();
+    setPending(false);
     if (!res.ok) {
-      setResult(`실패: ${data.error ?? "unknown error"}`);
+      setResult(`Failed: ${data.error ?? "unknown error"}`);
       return;
     }
-    setResult(`완료: ${data.place.name} (${data.place.slug})`);
+    setResult(`Saved: ${data.place.name} (${data.place.slug})`);
   }
 
   return (
-    <section className="w-full">
-      <h1 className="text-2xl font-bold">관리자 장소 등록</h1>
-      <p className="mt-2 text-sm text-slate-600">
-        0원 MVP용 간단 등록 폼입니다. 태그는 콤마(,)로 구분하세요.
-      </p>
+    <section className="w-full space-y-6">
+      <header className="panel p-6">
+        <h1 className="text-2xl font-semibold tracking-tight">Admin · New Place</h1>
+        <p className="mt-2 text-sm text-slate-600">
+          Minimal content operation form for fast publishing.
+        </p>
+      </header>
 
-      <form onSubmit={onSubmit} className="mt-6 grid gap-3 rounded-xl border border-slate-200 bg-white p-4">
+      <form onSubmit={onSubmit} className="panel grid gap-4 p-5 md:grid-cols-2">
         <input
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          placeholder="관리자 토큰"
+          className="input md:col-span-2"
+          placeholder="Admin write token"
           value={adminToken}
           onChange={(e) => setAdminToken(e.target.value)}
           required
         />
         <input
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          placeholder="장소명"
+          className="input"
+          placeholder="Place name"
           value={name}
           onChange={(e) => {
             setName(e.target.value);
@@ -84,64 +89,85 @@ export default function AdminPlacesPage() {
           required
         />
         <input
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          className="input"
           placeholder="slug"
           value={slug}
           onChange={(e) => setSlug(e.target.value)}
           required
         />
         <input
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          placeholder="지역 (예: Sukhumvit)"
+          className="input"
+          placeholder="District (ex. Sukhumvit)"
           value={district}
           onChange={(e) => setDistrict(e.target.value)}
         />
         <input
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          placeholder="카테고리 (예: 루프탑)"
+          className="input"
+          placeholder="Category (ex. Rooftop)"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
         />
         <textarea
-          className="min-h-24 rounded-md border border-slate-300 px-3 py-2 text-sm"
-          placeholder="설명"
+          className="input min-h-24 md:col-span-2"
+          placeholder="Description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
         <input
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          placeholder="주소"
+          className="input md:col-span-2"
+          placeholder="Address"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
         />
         <input
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          placeholder="태그 (예: 야경,데이트,BTS근처)"
+          className="input md:col-span-2"
+          placeholder="Tags (comma separated)"
           value={tags}
           onChange={(e) => setTags(e.target.value)}
         />
-        <div className="grid grid-cols-2 gap-2">
+        <textarea
+          className="input min-h-20 md:col-span-2"
+          placeholder="Tips"
+          value={tips}
+          onChange={(e) => setTips(e.target.value)}
+        />
+        <input
+          className="input md:col-span-2"
+          placeholder="Google Maps URL"
+          value={googleMapUrl}
+          onChange={(e) => setGoogleMapUrl(e.target.value)}
+        />
+        <div className="grid grid-cols-2 gap-2 md:col-span-2">
           <input
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-            placeholder="위도"
+            className="input"
+            placeholder="Latitude"
             value={latitude}
             onChange={(e) => setLatitude(e.target.value)}
           />
           <input
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-            placeholder="경도"
+            className="input"
+            placeholder="Longitude"
             value={longitude}
             onChange={(e) => setLongitude(e.target.value)}
           />
         </div>
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} />
+          Featured
+        </label>
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} />
+          Published
+        </label>
         <button
           type="submit"
-          className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+          className="btn-primary md:col-span-2"
+          disabled={pending}
         >
-          저장
+          {pending ? "Saving..." : "Save place"}
         </button>
       </form>
-      <p className="mt-3 text-sm text-slate-700">{result}</p>
+      <p className="text-sm text-slate-700">{result}</p>
     </section>
   );
 }

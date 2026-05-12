@@ -10,6 +10,7 @@ type Props = {
 
 export default function MapView({ places }: Props) {
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const markersRef = useRef<maplibregl.Marker[]>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -28,6 +29,24 @@ export default function MapView({ places }: Props) {
     });
 
     map.addControl(new maplibregl.NavigationControl(), "top-right");
+    map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: true }), "top-right");
+    mapRef.current = map;
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    markersRef.current.forEach((marker) => marker.remove());
+    markersRef.current = [];
+
+    const bounds = new maplibregl.LngLatBounds();
+    let hasBounds = false;
 
     places.forEach((place) => {
       if (place.longitude == null || place.latitude == null) return;
@@ -36,19 +55,20 @@ export default function MapView({ places }: Props) {
         `<strong>${place.name}</strong><br/>${place.district ?? ""}`
       );
 
-      new maplibregl.Marker()
+      const marker = new maplibregl.Marker({ color: "#0f172a" })
         .setLngLat([Number(place.longitude), Number(place.latitude)])
         .setPopup(popup)
         .addTo(map);
+
+      markersRef.current.push(marker);
+      bounds.extend([Number(place.longitude), Number(place.latitude)]);
+      hasBounds = true;
     });
 
-    mapRef.current = map;
-
-    return () => {
-      map.remove();
-      mapRef.current = null;
-    };
+    if (hasBounds) {
+      map.fitBounds(bounds, { padding: 64, maxZoom: 13, duration: 500 });
+    }
   }, [places]);
 
-  return <div ref={containerRef} className="h-[65vh] w-full rounded-xl border border-slate-200" />;
+  return <div ref={containerRef} className="h-[70vh] w-full rounded-2xl border border-slate-200" />;
 }
