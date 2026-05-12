@@ -1,5 +1,4 @@
-import Link from "next/link";
-import PlaceCard from "@/components/place-card";
+import HomeLanding from "@/components/home-landing";
 import { getPublishedPlaces } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -12,93 +11,5 @@ export default async function Home() {
     new Set(places.map((p) => p.district).filter(Boolean) as string[])
   ).slice(0, 8);
 
-  return (
-    <section className="w-full space-y-8">
-      <div className="panel overflow-hidden p-7 md:p-10">
-        <div className="max-w-3xl">
-          <p className="chip">Bangkok local curation</p>
-          <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight text-slate-900 md:text-5xl">
-            Minimal place platform with real local updates
-          </h1>
-          <p className="mt-4 text-sm leading-6 text-slate-600 md:text-base">
-            Built for Korean travelers who want save-worthy spots, not noisy lists.
-            Start lean, ship fast, and keep every place trustworthy.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link href="/places" className="btn-primary">
-              Explore places
-            </Link>
-            <Link href="/map" className="btn-secondary">
-              Open map
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-8 md:grid-cols-2">
-        <div className="panel p-6">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Platform focus</p>
-          <ul className="mt-3 space-y-2 text-sm text-slate-700">
-            <li>Direct-visit based recommendations</li>
-            <li>Fast mobile-first browsing</li>
-            <li>Map and tags for quick discovery</li>
-          </ul>
-        </div>
-        <div className="panel p-6">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Travel tools</p>
-          <ul className="mt-3 space-y-2 text-sm text-slate-700">
-            <li>Multi-stop route planner on map</li>
-            <li>District and category filtering</li>
-            <li>Bilingual KO/EN browsing</li>
-          </ul>
-        </div>
-      </div>
-
-      <section className="panel p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-xl font-semibold tracking-tight">Browse by district</h2>
-          <Link href="/places" className="text-sm text-slate-500 hover:text-slate-900">
-            Open full catalog
-          </Link>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {topDistricts.map((d) => (
-            <Link key={d} href={`/places?district=${encodeURIComponent(d)}`} className="chip">
-              {d}
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {featured.length > 0 ? (
-        <section>
-          <div className="mb-4 flex items-end justify-between">
-            <h2 className="text-xl font-semibold tracking-tight">Featured picks</h2>
-            <Link href="/places" className="text-sm text-slate-500 hover:text-slate-900">
-              See all
-            </Link>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {featured.map((place) => (
-              <PlaceCard key={place.id} place={place} />
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      <section>
-        <div className="mb-4 flex items-end justify-between">
-          <h2 className="text-xl font-semibold tracking-tight">Latest additions</h2>
-          <Link href="/places" className="text-sm text-slate-500 hover:text-slate-900">
-            Browse catalog
-          </Link>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          {latest.map((place) => (
-            <PlaceCard key={place.id} place={place} />
-          ))}
-        </div>
-      </section>
-    </section>
-  );
+  return <HomeLanding places={places} featured={featured} latest={latest} topDistricts={topDistricts} />;
 }
