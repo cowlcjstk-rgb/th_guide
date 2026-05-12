@@ -1,18 +1,10 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/components/language-provider";
 
-function NavLink({
-  href,
-  label,
-  active,
-}: {
-  href: string;
-  label: string;
-  active: boolean;
-}) {
+function NavLink({ href, label, active }: { href: string; label: string; active: boolean }) {
   return (
     <Link
       href={href}
@@ -41,7 +33,9 @@ export default function SideMenu() {
           commHome: "커뮤니티 홈",
           topRated: "평점 랭킹",
           latestReviews: "최신 리뷰",
-          guide: "여행 가이드",
+          routeShares: "동선 공유",
+          travelGuide: "여행 가이드",
+          faq: "자주 묻는 질문",
           adminPlaces: "장소 등록",
         }
       : {
@@ -54,7 +48,9 @@ export default function SideMenu() {
           commHome: "Community Home",
           topRated: "Top Rated",
           latestReviews: "Latest Reviews",
-          guide: "Travel Guide",
+          routeShares: "Route Shares",
+          travelGuide: "Travel Guide",
+          faq: "FAQ",
           adminPlaces: "Place Admin",
         };
 
@@ -82,9 +78,7 @@ export default function SideMenu() {
 
       <div className="mt-4 space-y-4">
         <div>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            {t.platform}
-          </p>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{t.platform}</p>
           <div className="space-y-1">
             <NavLink href="/" label={t.home} active={pathname === "/"} />
             <NavLink href="/places" label={t.places} active={pathname.startsWith("/places")} />
@@ -93,21 +87,19 @@ export default function SideMenu() {
         </div>
 
         <div>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            {t.community}
-          </p>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{t.community}</p>
           <div className="space-y-1">
             <NavLink href="/community" label={t.commHome} active={pathname === "/community"} />
             <NavLink href="/community#top-rated" label={t.topRated} active={pathname === "/community"} />
             <NavLink href="/community#latest-reviews" label={t.latestReviews} active={pathname === "/community"} />
-            <NavLink href="/community#guide" label={t.guide} active={pathname === "/community"} />
+            <NavLink href="/community#route-shares" label={t.routeShares} active={pathname === "/community"} />
+            <NavLink href="/community#guide" label={t.travelGuide} active={pathname === "/community"} />
+            <NavLink href="/community#faq" label={t.faq} active={pathname === "/community"} />
           </div>
         </div>
 
         <div>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            {t.admin}
-          </p>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{t.admin}</p>
           <div className="space-y-1">
             <NavLink href="/admin/places" label={t.adminPlaces} active={pathname.startsWith("/admin")} />
           </div>
