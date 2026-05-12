@@ -1,36 +1,72 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import MapView from "@/components/map-view";
 import { useLanguage } from "@/components/language-provider";
 import { localizePlaceName } from "@/lib/localize";
 import { Place } from "@/lib/types";
+import { uniqueValues } from "@/lib/utils";
 
 export default function MapPlanner({ places }: { places: Place[] }) {
   const { lang } = useLanguage();
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    const url = new URL(window.location.href);
+    const plan = url.searchParams.get("plan");
+    if (plan) return plan.split(",").filter(Boolean);
+    const saved = localStorage.getItem("trip_plan_latest");
+    if (!saved) return [];
+    try {
+      const ids = JSON.parse(saved);
+      return Array.isArray(ids) ? ids : [];
+    } catch {
+      return [];
+    }
+  });
   const [keyword, setKeyword] = useState("");
+  const [district, setDistrict] = useState("all");
+  const [category, setCategory] = useState("all");
+  const [copied, setCopied] = useState(false);
+
+  const districts = useMemo(() => uniqueValues(places.map((p) => p.district)), [places]);
+  const categories = useMemo(() => uniqueValues(places.map((p) => p.category)), [places]);
 
   const filtered = useMemo(() => {
     const q = keyword.trim().toLowerCase();
-    if (!q) return places;
     return places.filter((p) => {
       const name = localizePlaceName(p, lang).toLowerCase();
-      return (
+      const matchesQuery =
+        !q ||
         name.includes(q) ||
         (p.category ?? "").toLowerCase().includes(q) ||
-        (p.district ?? "").toLowerCase().includes(q)
-      );
+        (p.district ?? "").toLowerCase().includes(q);
+      const matchesDistrict = district === "all" || p.district === district;
+      const matchesCategory = category === "all" || p.category === category;
+      return matchesQuery && matchesDistrict && matchesCategory;
     });
-  }, [places, keyword, lang]);
+  }, [places, keyword, lang, district, category]);
 
-  const selectedPlaces = useMemo(
-    () => places.filter((p) => selectedIds.includes(p.id)),
-    [places, selectedIds]
-  );
+  const selectedPlaces = useMemo(() => {
+    const order = new Map(selectedIds.map((id, index) => [id, index]));
+    return places
+      .filter((p) => selectedIds.includes(p.id))
+      .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+  }, [places, selectedIds]);
 
   const toggle = (id: string) => {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const savePlan = () => {
+    localStorage.setItem("trip_plan_latest", JSON.stringify(selectedIds));
+  };
+
+  const copyShareLink = async () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("plan", selectedIds.join(","));
+    await navigator.clipboard.writeText(url.toString());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
   };
 
   return (
@@ -40,15 +76,35 @@ export default function MapPlanner({ places }: { places: Place[] }) {
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
           {lang === "ko" ? "이동 경로 만들기" : "Build route"}
         </h2>
-        <input
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-          className="input mt-3"
-          placeholder={lang === "ko" ? "장소 검색" : "Search places"}
-        />
+
+        <div className="mt-3 grid gap-2">
+          <input
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            className="input"
+            placeholder={lang === "ko" ? "장소 검색" : "Search places"}
+          />
+          <select className="input" value={district} onChange={(e) => setDistrict(e.target.value)}>
+            <option value="all">{lang === "ko" ? "전체 지역" : "All districts"}</option>
+            {districts.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+          <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
+            <option value="all">{lang === "ko" ? "전체 카테고리" : "All categories"}</option>
+            {categories.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <p className="mt-3 text-xs text-slate-500">
           {lang === "ko"
-            ? "장소를 여러 개 선택하면 지도에 순서가 표시됩니다."
+            ? "장소를 여러 개 선택하면 지도에 순서와 연결선이 표시됩니다."
             : "Select multiple places to draw route order on map."}
         </p>
 
@@ -85,6 +141,20 @@ export default function MapPlanner({ places }: { places: Place[] }) {
                 </li>
               ))}
             </ol>
+            <div className="mt-3 grid gap-2">
+              <button className="btn-secondary w-full" onClick={savePlan}>
+                {lang === "ko" ? "내 동선 저장" : "Save plan"}
+              </button>
+              <button className="btn-secondary w-full" onClick={copyShareLink}>
+                {copied
+                  ? lang === "ko"
+                    ? "링크 복사 완료"
+                    : "Copied"
+                  : lang === "ko"
+                    ? "공유 링크 복사"
+                    : "Copy share link"}
+              </button>
+            </div>
             <button className="btn-secondary mt-3 w-full" onClick={() => setSelectedIds([])}>
               {lang === "ko" ? "선택 초기화" : "Clear selection"}
             </button>

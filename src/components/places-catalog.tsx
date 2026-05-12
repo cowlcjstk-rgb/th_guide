@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import PlaceCard from "@/components/place-card";
 import { Place } from "@/lib/types";
 import { uniqueValues } from "@/lib/utils";
@@ -10,9 +11,10 @@ type Props = {
 };
 
 export default function PlacesCatalog({ places }: Props) {
-  const [keyword, setKeyword] = useState("");
-  const [district, setDistrict] = useState("all");
-  const [category, setCategory] = useState("all");
+  const searchParams = useSearchParams();
+  const [keyword, setKeyword] = useState(() => searchParams.get("q") ?? "");
+  const [district, setDistrict] = useState(() => searchParams.get("district") ?? "all");
+  const [category, setCategory] = useState(() => searchParams.get("category") ?? "all");
 
   const districts = useMemo(() => uniqueValues(places.map((p) => p.district)), [places]);
   const categories = useMemo(() => uniqueValues(places.map((p) => p.category)), [places]);

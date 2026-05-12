@@ -8,6 +8,9 @@ export default async function Home() {
   const places = await getPublishedPlaces();
   const featured = places.filter((item) => item.is_featured).slice(0, 3);
   const latest = places.slice(0, 4);
+  const topDistricts = Array.from(
+    new Set(places.map((p) => p.district).filter(Boolean) as string[])
+  ).slice(0, 8);
 
   return (
     <section className="w-full space-y-8">
@@ -42,14 +45,30 @@ export default async function Home() {
           </ul>
         </div>
         <div className="panel p-6">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">MVP health check</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Travel tools</p>
           <ul className="mt-3 space-y-2 text-sm text-slate-700">
-            <li>Total published places: {places.length}</li>
-            <li>Featured picks: {featured.length}</li>
-            <li>Status: ready for content ops</li>
+            <li>Multi-stop route planner on map</li>
+            <li>District and category filtering</li>
+            <li>Bilingual KO/EN browsing</li>
           </ul>
         </div>
       </div>
+
+      <section className="panel p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-xl font-semibold tracking-tight">Browse by district</h2>
+          <Link href="/places" className="text-sm text-slate-500 hover:text-slate-900">
+            Open full catalog
+          </Link>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {topDistricts.map((d) => (
+            <Link key={d} href={`/places?district=${encodeURIComponent(d)}`} className="chip">
+              {d}
+            </Link>
+          ))}
+        </div>
+      </section>
 
       {featured.length > 0 ? (
         <section>
