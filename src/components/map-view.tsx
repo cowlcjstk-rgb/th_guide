@@ -15,9 +15,14 @@ export default function MapView({ places }: Props) {
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
+    const mapTilerKey = process.env.NEXT_PUBLIC_MAPTILER_KEY;
+    const styleUrl = mapTilerKey
+      ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${mapTilerKey}`
+      : "https://demotiles.maplibre.org/style.json";
+
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: "https://demotiles.maplibre.org/style.json",
+      style: styleUrl,
       center: [100.5018, 13.7563],
       zoom: 11,
     });
