@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "scrape:monkey": "node scripts/scrape-monkey-places.mjs"
+    "scrape:monkey": "node scripts/scrape-monkey-places.mjs",
+    "import:places:xlsx": "node scripts/import-places-from-xlsx.mjs",
+    "backfill:coords": "node scripts/backfill-coordinates.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",

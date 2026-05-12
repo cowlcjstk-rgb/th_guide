@@ -1,4 +1,4 @@
-import MapView from "@/components/map-view";
+import MapPlanner from "@/components/map-planner";
 import { getPublishedPlaces } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -21,24 +21,7 @@ export default async function MapPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.65fr_1fr]">
-        <MapView places={places} />
-        <aside className="panel p-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Quick list
-          </h2>
-          <div className="mt-3 max-h-[68vh] space-y-2 overflow-auto">
-            {places.map((place) => (
-              <div key={place.id} className="rounded-xl border border-slate-200 bg-white p-3">
-                <p className="text-sm font-semibold text-slate-900">{place.name}</p>
-                <p className="mt-1 text-xs text-slate-500">
-                  {place.district ?? "Unknown"} · {place.category ?? "General"}
-                </p>
-              </div>
-            ))}
-          </div>
-        </aside>
-      </div>
+      <MapPlanner places={places} />
     </section>
   );
 }
