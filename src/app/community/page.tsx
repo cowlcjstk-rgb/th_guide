@@ -87,6 +87,17 @@ export default async function CommunityPage() {
               })}
             </div>
           </article>
+
+          <article id="guide" className="card p-5">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              Community Guide
+            </h2>
+            <div className="mt-3 grid gap-2 text-sm text-slate-700">
+              <p>1. Leave short, specific reviews based on real visits.</p>
+              <p>2. Use route planner and share your multi-stop path.</p>
+              <p>3. Tag useful context like best time and vibe.</p>
+            </div>
+          </article>
         </div>
       </div>
     </section>

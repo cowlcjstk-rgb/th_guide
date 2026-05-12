@@ -9,7 +9,8 @@
     "lint": "eslint",
     "scrape:monkey": "node scripts/scrape-monkey-places.mjs",
     "import:places:xlsx": "node scripts/import-places-from-xlsx.mjs",
-    "backfill:coords": "node scripts/backfill-coordinates.mjs"
+    "backfill:coords": "node scripts/backfill-coordinates.mjs",
+    "verify:thai-google": "node scripts/verify-thailand-and-map-links.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",
