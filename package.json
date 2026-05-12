@@ -10,7 +10,8 @@
     "scrape:monkey": "node scripts/scrape-monkey-places.mjs",
     "import:places:xlsx": "node scripts/import-places-from-xlsx.mjs",
     "backfill:coords": "node scripts/backfill-coordinates.mjs",
-    "verify:thai-google": "node scripts/verify-thailand-and-map-links.mjs"
+    "verify:thai-google": "node scripts/verify-thailand-and-map-links.mjs",
+    "refresh:google-by-name": "node scripts/refresh-places-by-name-google.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",
