@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -25,7 +25,7 @@ export default function CommunityHub({ places, reviews, plans }: Props) {
     lang === "ko"
       ? {
           title: "커뮤니티",
-          subtitle: "실제 방문 리뷰와 동선 공유로, 더 정확한 방콕 여행 정보를 함께 만듭니다.",
+          subtitle: "실제 방문 리뷰와 동선 공유로, 더 정확한 태국 여행 정보를 함께 만듭니다.",
           search: "장소명/리뷰 검색",
           topRated: "평점 랭킹",
           latest: "최신 리뷰",
@@ -35,10 +35,14 @@ export default function CommunityHub({ places, reviews, plans }: Props) {
           goWrite: "리뷰 쓰기",
           goMap: "동선 만들기",
           reviews: "리뷰",
+          stats: "커뮤니티 현황",
+          totalReviews: "전체 리뷰",
+          totalPlans: "공유 동선",
+          activePlaces: "리뷰 있는 장소",
         }
       : {
           title: "Community",
-          subtitle: "Share real visit reviews and route plans for better Bangkok trip decisions.",
+          subtitle: "Share real visit reviews and route plans for better Thailand travel decisions.",
           search: "Search place or review",
           topRated: "Top Rated",
           latest: "Latest Reviews",
@@ -48,6 +52,10 @@ export default function CommunityHub({ places, reviews, plans }: Props) {
           goWrite: "Write review",
           goMap: "Build route",
           reviews: "reviews",
+          stats: "Community stats",
+          totalReviews: "Total reviews",
+          totalPlans: "Shared routes",
+          activePlaces: "Places with reviews",
         };
 
   const placeMap = useMemo(() => new Map(places.map((p) => [p.id, p])), [places]);
@@ -66,7 +74,8 @@ export default function CommunityHub({ places, reviews, plans }: Props) {
         if (!place) return null;
         return { place, avg: v.sum / v.count, count: v.count } satisfies RatedPlace;
       })
-      .filter(Boolean) as RatedPlace[];
+      .filter(Boolean)
+      .sort((a, b) => (b as RatedPlace).avg - (a as RatedPlace).avg) as RatedPlace[];
   }, [reviews, placeMap]);
 
   const filteredReviews = useMemo(() => {
@@ -81,6 +90,8 @@ export default function CommunityHub({ places, reviews, plans }: Props) {
       );
     });
   }, [reviews, placeMap, query]);
+
+  const reviewedPlaceCount = useMemo(() => new Set(reviews.map((r) => r.place_id)).size, [reviews]);
 
   return (
     <section className="w-full space-y-6">
@@ -106,6 +117,24 @@ export default function CommunityHub({ places, reviews, plans }: Props) {
           onChange={(e) => setQuery(e.target.value)}
         />
       </header>
+
+      <section className="panel p-5">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{t.stats}</h2>
+        <div className="mt-3 grid gap-3 md:grid-cols-3">
+          <div className="card p-4">
+            <p className="text-xs text-slate-500">{t.totalReviews}</p>
+            <p className="mt-1 text-2xl font-semibold">{reviews.length}</p>
+          </div>
+          <div className="card p-4">
+            <p className="text-xs text-slate-500">{t.totalPlans}</p>
+            <p className="mt-1 text-2xl font-semibold">{plans.length}</p>
+          </div>
+          <div className="card p-4">
+            <p className="text-xs text-slate-500">{t.activePlaces}</p>
+            <p className="mt-1 text-2xl font-semibold">{reviewedPlaceCount}</p>
+          </div>
+        </div>
+      </section>
 
       <section id="top-rated" className="card p-5">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{t.topRated}</h2>

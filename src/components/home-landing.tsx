@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import PlaceCard from "@/components/place-card";
@@ -15,37 +15,44 @@ type Props = {
 export default function HomeLanding({ places, featured, latest, topDistricts }: Props) {
   const { lang } = useLanguage();
 
+  const districtCount = new Set(places.map((p) => p.district).filter(Boolean)).size;
+  const categoryCount = new Set(places.map((p) => p.category).filter(Boolean)).size;
+
   const t =
     lang === "ko"
       ? {
-          chip: "방콕 로컬 큐레이션",
-          title: "직접 방문 기반 장소 플랫폼",
-          desc: "저장하고 싶은 방콕 장소를 빠르게 찾고, 지도 동선까지 바로 만들 수 있습니다.",
-          explore: "장소 보기",
-          map: "지도 열기",
-          focus: "플랫폼 핵심",
-          tools: "여행 도구",
-          district: "지역별 탐색",
-          openCatalog: "전체 카탈로그",
+          chip: "태국 여행 가이드",
+          title: "현지감 있는 태국 여행 가이드",
+          desc: "실제 방문 기반 장소 데이터와 커뮤니티 리뷰, 이동 경로까지 한 번에 확인할 수 있습니다.",
+          explore: "장소 탐색",
+          map: "이동 경로 만들기",
+          stats: "데이터 현황",
+          total: "전체 장소",
+          district: "지역 수",
+          category: "카테고리 수",
+          districtBrowse: "지역별 바로가기",
+          openCatalog: "전체 리스트",
           featured: "추천 장소",
-          latest: "최근 추가",
+          latest: "최신 등록",
           seeAll: "전체 보기",
-          browseCatalog: "리스트 보기",
+          browseCatalog: "리스트 이동",
         }
       : {
-          chip: "Bangkok local curation",
-          title: "Direct-visit place platform",
-          desc: "Find save-worthy Bangkok places and build route plans instantly on map.",
+          chip: "Thailand Travel Guide",
+          title: "Practical Thailand travel guide",
+          desc: "Explore real-visit places, community reviews, and route planning in one flow.",
           explore: "Explore places",
-          map: "Open map",
-          focus: "Platform focus",
-          tools: "Travel tools",
-          district: "Browse by district",
-          openCatalog: "Open full catalog",
+          map: "Build route",
+          stats: "Live data stats",
+          total: "Total places",
+          district: "Districts",
+          category: "Categories",
+          districtBrowse: "Quick district access",
+          openCatalog: "Open full list",
           featured: "Featured picks",
-          latest: "Latest additions",
+          latest: "Latest updates",
           seeAll: "See all",
-          browseCatalog: "Browse catalog",
+          browseCatalog: "Browse list",
         };
 
   return (
@@ -68,28 +75,27 @@ export default function HomeLanding({ places, featured, latest, topDistricts }: 
         </div>
       </div>
 
-      <div className="grid gap-8 md:grid-cols-2">
-        <div className="panel p-6">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t.focus}</p>
-          <ul className="mt-3 space-y-2 text-sm text-slate-700">
-            <li>{lang === "ko" ? "직접 방문 기반 정보" : "Direct-visit based recommendations"}</li>
-            <li>{lang === "ko" ? "모바일 우선 UX" : "Fast mobile-first browsing"}</li>
-            <li>{lang === "ko" ? "지도 + 태그 탐색" : "Map and tags for discovery"}</li>
-          </ul>
+      <section className="panel p-6">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{t.stats}</h2>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <div className="card p-4">
+            <p className="text-xs text-slate-500">{t.total}</p>
+            <p className="mt-1 text-2xl font-semibold">{places.length}</p>
+          </div>
+          <div className="card p-4">
+            <p className="text-xs text-slate-500">{t.district}</p>
+            <p className="mt-1 text-2xl font-semibold">{districtCount}</p>
+          </div>
+          <div className="card p-4">
+            <p className="text-xs text-slate-500">{t.category}</p>
+            <p className="mt-1 text-2xl font-semibold">{categoryCount}</p>
+          </div>
         </div>
-        <div className="panel p-6">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t.tools}</p>
-          <ul className="mt-3 space-y-2 text-sm text-slate-700">
-            <li>{lang === "ko" ? "여러 장소 동선 플래너" : "Multi-stop route planner"}</li>
-            <li>{lang === "ko" ? "지역/카테고리 필터" : "District/category filters"}</li>
-            <li>{lang === "ko" ? `게시 장소 ${places.length}개` : `${places.length} published places`}</li>
-          </ul>
-        </div>
-      </div>
+      </section>
 
       <section className="panel p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-xl font-semibold tracking-tight">{t.district}</h2>
+          <h2 className="text-xl font-semibold tracking-tight">{t.districtBrowse}</h2>
           <Link href="/places" className="text-sm text-slate-500 hover:text-slate-900">
             {t.openCatalog}
           </Link>

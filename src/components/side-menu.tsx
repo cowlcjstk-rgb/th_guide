@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/language-provider";
 
 function NavLink({ href, label, active }: { href: string; label: string; active: boolean }) {
@@ -20,45 +21,60 @@ function NavLink({ href, label, active }: { href: string; label: string; active:
 export default function SideMenu() {
   const pathname = usePathname();
   const { lang, setLang } = useLanguage();
+  const [hash, setHash] = useState("");
 
-  const t =
-    lang === "ko"
-      ? {
-          platform: "플랫폼",
-          community: "커뮤니티",
-          admin: "관리",
-          home: "메인",
-          places: "장소 탐색",
-          map: "지도 플래너",
-          commHome: "커뮤니티 홈",
-          topRated: "평점 랭킹",
-          latestReviews: "최신 리뷰",
-          routeShares: "동선 공유",
-          travelGuide: "여행 가이드",
-          faq: "자주 묻는 질문",
-          adminPlaces: "장소 등록",
-        }
-      : {
-          platform: "Platform",
-          community: "Community",
-          admin: "Admin",
-          home: "Home",
-          places: "Places",
-          map: "Map Planner",
-          commHome: "Community Home",
-          topRated: "Top Rated",
-          latestReviews: "Latest Reviews",
-          routeShares: "Route Shares",
-          travelGuide: "Travel Guide",
-          faq: "FAQ",
-          adminPlaces: "Place Admin",
-        };
+  useEffect(() => {
+    const sync = () => setHash(window.location.hash || "");
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
+
+  const t = useMemo(
+    () =>
+      lang === "ko"
+        ? {
+            brand: "Thailand Guide",
+            platform: "플랫폼",
+            community: "커뮤니티",
+            admin: "관리",
+            home: "홈",
+            places: "장소 탐색",
+            map: "이동 경로",
+            commHome: "커뮤니티 홈",
+            topRated: "평점 랭킹",
+            latestReviews: "최신 리뷰",
+            routeShares: "동선 공유",
+            travelGuide: "여행 가이드",
+            faq: "자주 묻는 질문",
+            adminPlaces: "장소 등록",
+          }
+        : {
+            brand: "Thailand Guide",
+            platform: "Platform",
+            community: "Community",
+            admin: "Admin",
+            home: "Home",
+            places: "Places",
+            map: "Route Planner",
+            commHome: "Community Home",
+            topRated: "Top Rated",
+            latestReviews: "Latest Reviews",
+            routeShares: "Route Shares",
+            travelGuide: "Travel Guide",
+            faq: "FAQ",
+            adminPlaces: "Place Admin",
+          },
+    [lang]
+  );
+
+  const isCommunity = pathname === "/community";
 
   return (
     <aside className="panel h-fit p-4 lg:sticky lg:top-4">
       <div className="flex items-center justify-between">
         <Link href="/" className="text-sm font-bold tracking-tight text-slate-900">
-          Bangkok Place
+          {t.brand}
         </Link>
         <div className="flex rounded-lg border border-slate-200 bg-white p-1">
           <button
@@ -89,12 +105,12 @@ export default function SideMenu() {
         <div>
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{t.community}</p>
           <div className="space-y-1">
-            <NavLink href="/community" label={t.commHome} active={pathname === "/community"} />
-            <NavLink href="/community#top-rated" label={t.topRated} active={pathname === "/community"} />
-            <NavLink href="/community#latest-reviews" label={t.latestReviews} active={pathname === "/community"} />
-            <NavLink href="/community#route-shares" label={t.routeShares} active={pathname === "/community"} />
-            <NavLink href="/community#guide" label={t.travelGuide} active={pathname === "/community"} />
-            <NavLink href="/community#faq" label={t.faq} active={pathname === "/community"} />
+            <NavLink href="/community" label={t.commHome} active={isCommunity && hash === ""} />
+            <NavLink href="/community#top-rated" label={t.topRated} active={isCommunity && hash === "#top-rated"} />
+            <NavLink href="/community#latest-reviews" label={t.latestReviews} active={isCommunity && hash === "#latest-reviews"} />
+            <NavLink href="/community#route-shares" label={t.routeShares} active={isCommunity && hash === "#route-shares"} />
+            <NavLink href="/community#guide" label={t.travelGuide} active={isCommunity && hash === "#guide"} />
+            <NavLink href="/community#faq" label={t.faq} active={isCommunity && hash === "#faq"} />
           </div>
         </div>
 

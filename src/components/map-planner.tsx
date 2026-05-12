@@ -30,6 +30,14 @@ export default function MapPlanner({ places }: { places: Place[] }) {
 
   const districts = useMemo(() => uniqueValues(places.map((p) => p.district)), [places]);
   const categories = useMemo(() => uniqueValues(places.map((p) => p.category)), [places]);
+  const districtStats = useMemo(() => {
+    const map = new Map<string, number>();
+    places.forEach((p) => {
+      const key = p.district ?? "Unknown";
+      map.set(key, (map.get(key) ?? 0) + 1);
+    });
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  }, [places]);
 
   const filtered = useMemo(() => {
     const q = keyword.trim().toLowerCase();
@@ -118,6 +126,19 @@ export default function MapPlanner({ places }: { places: Place[] }) {
             ? "장소를 여러 개 선택하면 지도에 순서와 연결선이 표시됩니다."
             : "Select multiple places to draw route order on map."}
         </p>
+
+        <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {lang === "ko" ? "지역별 등록 수" : "Places by district"}
+          </p>
+          <div className="mt-2 grid gap-1 text-xs text-slate-600">
+            {districtStats.map(([d, n]) => (
+              <p key={d}>
+                {d}: {n}
+              </p>
+            ))}
+          </div>
+        </div>
 
         <div className="mt-3 max-h-[45vh] space-y-2 overflow-auto pr-1">
           {filtered.map((place) => {
