@@ -4,7 +4,7 @@ import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 export const dynamic = "force-dynamic";
 
 const PLACE_SELECT =
-  "id,name,slug,city,description,address,district,category,tags,latitude,longitude,google_map_url,thumbnail,tips,is_published,is_featured,created_at,updated_at";
+  "id,name,slug,city,description,address,district,category,tags,latitude,longitude,google_map_url,thumbnail,tips,is_published,is_featured,submission_status,submitted_by,last_verified_at,created_at,updated_at";
 
 function toInt(input: string | null, fallback: number, min: number, max: number) {
   const parsed = Number(input ?? fallback);

@@ -18,15 +18,14 @@ export default function PlaceCard({ place, disableLink = false, onClick }: Props
   const city = inferThaiCity(place);
 
   const isPendingApproval = place.submission_status === "pending" || place.is_published === false;
+  const locale = lang === "ko" ? "ko-KR" : "en-US";
   const verifiedLabel = place.last_verified_at
-    ? `${lang === "ko" ? "검증" : "Verified"} ${new Date(place.last_verified_at).toLocaleDateString(lang === "ko" ? "ko-KR" : "en-US")}`
+    ? `${lang === "ko" ? "검증" : "Verified"} ${new Date(place.last_verified_at).toLocaleDateString(locale)}`
     : isPendingApproval
       ? lang === "ko"
         ? "승인 대기"
         : "Pending approval"
-      : lang === "ko"
-        ? "검증일 미등록"
-        : "No verification date";
+      : `${lang === "ko" ? "운영 등록" : "Operational"} ${new Date(place.updated_at ?? place.created_at).toLocaleDateString(locale)}`;
   const sourceLabel = place.submitted_by
     ? `${lang === "ko" ? "출처" : "Source"} ${place.submitted_by}`
     : `${lang === "ko" ? "출처" : "Source"} ${lang === "ko" ? "운영팀" : "Ops Team"}`;

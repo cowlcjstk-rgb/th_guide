@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import ContactBanners from "@/components/contact-banners";
 import { trackClientEvent } from "@/components/analytics-tracker";
 import { useLanguage } from "@/components/language-provider";
@@ -115,6 +115,18 @@ export default function PlaceEditRequestPage() {
     setResults((data as SearchResponse).places ?? []);
   }
 
+  useEffect(() => {
+    const q = keyword.trim();
+    if (!q) {
+      setResults([]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      void runSearch();
+    }, 220);
+    return () => clearTimeout(timer);
+  }, [keyword]);
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!selectedPlace || !hasAnyChanges) return;
@@ -178,7 +190,18 @@ export default function PlaceEditRequestPage() {
       <section className="panel p-5">
         <p className="mb-2 text-xs text-slate-500">{t.searchLabel}</p>
         <div className="grid gap-2 md:grid-cols-[1fr_auto]">
-          <input className="input" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder={t.searchPh} />
+          <input
+            className="input"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            placeholder={t.searchPh}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void runSearch();
+              }
+            }}
+          />
           <button className="btn-secondary" onClick={runSearch} disabled={searching}>
             {searching ? "..." : t.searchBtn}
           </button>
