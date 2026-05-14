@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auditLog } from "@/lib/audit-log";
+import { trackEventServer } from "@/lib/analytics";
 import { applyRateLimit } from "@/lib/rate-limit";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
@@ -50,5 +51,14 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   auditLog("trip_plan_submission_created", { planId: data.id, size: ids.length });
+  await trackEventServer({
+    event_name: "trip_plan_submit_complete",
+    path: "/api/trip-plans",
+    meta: {
+      place_count: ids.length,
+      has_description: Boolean(body.description?.trim()),
+      has_extra_info: Boolean(body.extra_info?.trim()),
+    },
+  });
   return NextResponse.json({ plan: data });
 }

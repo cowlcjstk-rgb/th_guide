@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auditLog } from "@/lib/audit-log";
+import { trackEventServer } from "@/lib/analytics";
 import { applyRateLimit } from "@/lib/rate-limit";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { slugify } from "@/lib/utils";
@@ -22,6 +23,7 @@ export async function POST(req: NextRequest) {
     tags?: string[];
     tips?: string;
     submitted_by?: string;
+    image_urls?: string[];
   };
 
   if (!body.name?.trim()) {
@@ -71,10 +73,49 @@ export async function POST(req: NextRequest) {
       .select("id, name")
       .single();
     if (fallback.error) return NextResponse.json({ error: fallback.error.message }, { status: 400 });
+    const fallbackId = fallback.data?.id as string | undefined;
+    const rawImages = Array.isArray(body.image_urls) ? body.image_urls : [];
+    const imageUrls = rawImages.map((url) => url.trim()).filter(Boolean).slice(0, 8);
+    if (fallbackId && imageUrls.length > 0) {
+      await supabase.from("place_submission_images").insert(
+        imageUrls.map((imageUrl) => ({
+          place_id: fallbackId,
+          image_url: imageUrl,
+          moderation_status: "pending",
+        }))
+      );
+    }
+    await trackEventServer({
+      event_name: "place_submit_complete",
+      path: "/submit/place",
+      meta: {
+        place_id: fallbackId ?? null,
+        image_count: imageUrls.length,
+      },
+    });
     return NextResponse.json({ ok: true, submission: fallback.data });
   }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  const rawImages = Array.isArray(body.image_urls) ? body.image_urls : [];
+  const imageUrls = rawImages.map((url) => url.trim()).filter(Boolean).slice(0, 8);
+  if (imageUrls.length > 0) {
+    await supabase.from("place_submission_images").insert(
+      imageUrls.map((imageUrl) => ({
+        place_id: data.id,
+        image_url: imageUrl,
+        moderation_status: "pending",
+      }))
+    );
+  }
   auditLog("place_submission_created", { placeId: data.id, name: data.name });
+  await trackEventServer({
+    event_name: "place_submit_complete",
+    path: "/submit/place",
+    meta: {
+      place_id: data.id,
+      image_count: imageUrls.length,
+    },
+  });
   return NextResponse.json({ ok: true, submission: data });
 }

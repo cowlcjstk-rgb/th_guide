@@ -9,6 +9,13 @@ type Props = {
   places: Place[];
   allPlaces?: Place[];
   selectedIds: string[];
+  routeMode?: "driving" | "walking";
+  onRouteSummaryChange?: (summary: {
+    mode: "driving" | "walking";
+    distanceM: number;
+    durationS: number;
+    isFallback: boolean;
+  } | null) => void;
   onPlaceInspect?: (placeId: string) => void;
   onViewportPlaceIdsChange?: (placeIds: string[]) => void;
   onViewportBoundsChange?: (bounds: {
@@ -68,6 +75,8 @@ export default function MapView({
   places,
   allPlaces,
   selectedIds,
+  routeMode = "driving",
+  onRouteSummaryChange,
   onPlaceInspect,
   onViewportPlaceIdsChange,
   onViewportBoundsChange,
@@ -78,6 +87,7 @@ export default function MapView({
   const selectedMarkersRef = useRef<maplibregl.Marker[]>([]);
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const onPlaceInspectRef = useRef(onPlaceInspect);
+  const onRouteSummaryChangeRef = useRef(onRouteSummaryChange);
   const onViewportPlaceIdsChangeRef = useRef(onViewportPlaceIdsChange);
   const onViewportBoundsChangeRef = useRef(onViewportBoundsChange);
   const placesRef = useRef(places);
@@ -88,6 +98,10 @@ export default function MapView({
   useEffect(() => {
     onPlaceInspectRef.current = onPlaceInspect;
   }, [onPlaceInspect]);
+
+  useEffect(() => {
+    onRouteSummaryChangeRef.current = onRouteSummaryChange;
+  }, [onRouteSummaryChange]);
 
   useEffect(() => {
     onViewportPlaceIdsChangeRef.current = onViewportPlaceIdsChange;
@@ -362,19 +376,51 @@ export default function MapView({
 
       if (selected.length >= 2) {
         const routeFitKey = selectedIds.join(",");
-        const coords = selected.map((p) => `${p.lng},${p.lat}`).join(";");
         let routeCoords: [number, number][] = selected.map((p) => [p.lng, p.lat]);
+        let distanceM = 0;
+        let durationS = 0;
+        let isFallback = true;
 
         try {
-          const osrm = await fetch(
-            `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`
-          );
-          const data = await osrm.json();
-          const geometry = data?.routes?.[0]?.geometry?.coordinates;
-          if (Array.isArray(geometry) && geometry.length > 1) {
-            routeCoords = geometry;
+          const osrm = await fetch("/api/routing/route", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              mode: routeMode,
+              points: selected.map((p) => ({ lng: p.lng, lat: p.lat })),
+            }),
+          });
+          const data = (await osrm.json()) as {
+            coordinates?: [number, number][];
+            distance_m?: number;
+            duration_s?: number;
+          };
+          if (osrm.ok && Array.isArray(data.coordinates) && data.coordinates.length > 1) {
+            routeCoords = data.coordinates;
+            distanceM = Number(data.distance_m ?? 0);
+            durationS = Number(data.duration_s ?? 0);
+            isFallback = false;
           }
         } catch {}
+
+        if (isFallback) {
+          let distance = 0;
+          for (let i = 1; i < routeCoords.length; i += 1) {
+            const [lng1, lat1] = routeCoords[i - 1];
+            const [lng2, lat2] = routeCoords[i];
+            const dx = (lng2 - lng1) * 111_320 * Math.cos(((lat1 + lat2) / 2) * (Math.PI / 180));
+            const dy = (lat2 - lat1) * 110_540;
+            distance += Math.sqrt(dx * dx + dy * dy);
+          }
+          distanceM = Math.round(distance);
+          durationS = Math.round(distanceM / (routeMode === "walking" ? 1.35 : 8.3));
+        }
+        onRouteSummaryChangeRef.current?.({
+          mode: routeMode,
+          distanceM,
+          durationS,
+          isFallback,
+        });
 
         map.addSource(ROUTE_SOURCE_ID, {
           type: "geojson",
@@ -409,6 +455,7 @@ export default function MapView({
       }
 
       lastRouteFitKeyRef.current = "";
+      onRouteSummaryChangeRef.current?.(null);
 
       if (geojson.features.length > 0 && !didInitialFitRef.current) {
         if (geojson.features.length === 1) {
@@ -434,7 +481,7 @@ export default function MapView({
     }
 
     void renderPlaces();
-  }, [places, allPlaces, selectedIds, serverClusters, useServerClusters]);
+  }, [places, allPlaces, selectedIds, routeMode, serverClusters, useServerClusters]);
 
   return <div ref={containerRef} className="h-[70vh] w-full rounded-2xl border border-slate-200" />;
 }

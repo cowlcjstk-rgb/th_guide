@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import ContactBanners from "@/components/contact-banners";
+import { trackClientEvent } from "@/components/analytics-tracker";
 import { useLanguage } from "@/components/language-provider";
 import { PLACE_CATEGORIES, THAI_CITIES } from "@/lib/thai-options";
 
@@ -16,6 +17,7 @@ export default function RegisterPlacePage() {
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState("");
   const [tips, setTips] = useState("");
+  const [imageUrlsText, setImageUrlsText] = useState("");
   const [nickname, setNickname] = useState("");
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState("");
@@ -24,38 +26,31 @@ export default function RegisterPlacePage() {
     lang === "ko"
       ? {
           title: "장소 등록",
-          desc: "등록한 장소는 관리자 확인 후 공개됩니다.",
-          sla: "등록 심사는 접수 후 최대 2일 이내 진행됩니다.",
+          desc: "등록한 장소는 관리자 검수 후 공개됩니다.",
+          sla: "요청 후 최대 2일 이내 등록 심사가 진행됩니다.",
           submit: "장소 등록 요청",
           sending: "등록 중...",
-          ok: "등록 요청이 접수되었습니다. 승인 후 공개됩니다.",
+          ok: "등록 요청이 접수되었습니다. 검수 후 공개됩니다.",
           fail: "등록 실패",
-          name: "장소명 (한글/영문)",
+          name: "장소명 (한국어/영어)",
           district: "지역 (District)",
           category: "카테고리",
           city: "도시 (City)",
-          address: "주소 (Address)",
-          mapUrl: "구글맵 링크",
-          description: "기본 정보 (Basic Info)",
-          tags: "태그 (쉼표 구분)",
-          tips: "운영 팁 (User Tip)",
+          address: "주소",
+          mapUrl: "Google Maps URL",
+          description: "기본 정보",
+          tags: "태그 (콤마 구분)",
+          tips: "운영 팁",
+          images: "이미지 URL (줄바꿈으로 여러 개 입력)",
           nickname: "작성자 닉네임 (선택)",
-          exName: "예) 티추카 루프탑 / Tichuca Rooftop Bar",
-          exDistrict: "예) Sukhumvit",
-          exAddress: "예) T-One Building, Sukhumvit Rd, Bangkok 10110",
-          exMap: "예) https://maps.app.goo.gl/xxxxx",
-          exDesc: "예) 야경이 좋고 저녁 7시 이후 분위기가 좋습니다. / Great skyline view after 7 PM.",
-          exTags: "예) 야경, 데이트, 루프탑",
-          exTips: "예) 예약 후 방문 추천 / Reservation recommended",
-          exNick: "예) 민지 / Minji",
         }
       : {
           title: "Place Registration",
-          desc: "Your place will be published after admin approval.",
-          sla: "Review SLA: your submission is reviewed within 2 days.",
+          desc: "Your place will be published after admin review.",
+          sla: "Review SLA: within 2 days.",
           submit: "Submit Place Registration",
           sending: "Submitting...",
-          ok: "Registration request submitted. It will be published after approval.",
+          ok: "Your request has been submitted.",
           fail: "Submission failed",
           name: "Place Name (KO/EN)",
           district: "District",
@@ -66,21 +61,22 @@ export default function RegisterPlacePage() {
           description: "Basic Info",
           tags: "Tags (comma separated)",
           tips: "User Tip",
+          images: "Image URLs (one per line)",
           nickname: "Nickname (optional)",
-          exName: "e.g. 티추카 루프탑 / Tichuca Rooftop Bar",
-          exDistrict: "e.g. Sukhumvit",
-          exAddress: "e.g. T-One Building, Sukhumvit Rd, Bangkok 10110",
-          exMap: "e.g. https://maps.app.goo.gl/xxxxx",
-          exDesc: "e.g. 야경이 좋고 저녁 7시 이후 분위기가 좋습니다. / Great skyline view after 7 PM.",
-          exTags: "e.g. night view, date, rooftop",
-          exTips: "e.g. Reservation recommended",
-          exNick: "e.g. Minji",
         };
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setPending(true);
     setResult("");
+    trackClientEvent("place_submit_start", { page: "/submit/place" });
+
+    const imageUrls = imageUrlsText
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(0, 8);
+
     const res = await fetch("/api/submissions/places", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -92,12 +88,16 @@ export default function RegisterPlacePage() {
         address,
         description,
         google_map_url: googleMapUrl,
-        tags: tags.split(",").map((s) => s.trim()).filter(Boolean),
+        tags: tags
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
         tips,
+        image_urls: imageUrls,
         submitted_by: nickname,
       }),
     });
-    const data = await res.json();
+    const data = (await res.json()) as { error?: string };
     setPending(false);
     if (!res.ok) {
       setResult(`${t.fail}: ${data?.error ?? "unknown error"}`);
@@ -110,6 +110,7 @@ export default function RegisterPlacePage() {
     setDescription("");
     setTags("");
     setTips("");
+    setImageUrlsText("");
     setNickname("");
     setResult(t.ok);
   }
@@ -125,7 +126,7 @@ export default function RegisterPlacePage() {
       <form onSubmit={onSubmit} className="panel grid gap-3 p-5 md:grid-cols-2">
         <div>
           <p className="mb-1 text-xs text-slate-500">{t.name}</p>
-          <input className="input" placeholder={t.exName} value={name} onChange={(e) => setName(e.target.value)} required />
+          <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
         </div>
         <div>
           <p className="mb-1 text-xs text-slate-500">{t.city}</p>
@@ -139,7 +140,7 @@ export default function RegisterPlacePage() {
         </div>
         <div>
           <p className="mb-1 text-xs text-slate-500">{t.district}</p>
-          <input className="input" placeholder={t.exDistrict} value={district} onChange={(e) => setDistrict(e.target.value)} />
+          <input className="input" value={district} onChange={(e) => setDistrict(e.target.value)} />
         </div>
         <div>
           <p className="mb-1 text-xs text-slate-500">{t.category}</p>
@@ -153,27 +154,36 @@ export default function RegisterPlacePage() {
         </div>
         <div className="md:col-span-2">
           <p className="mb-1 text-xs text-slate-500">{t.address}</p>
-          <input className="input" placeholder={t.exAddress} value={address} onChange={(e) => setAddress(e.target.value)} />
+          <input className="input" value={address} onChange={(e) => setAddress(e.target.value)} />
         </div>
         <div className="md:col-span-2">
           <p className="mb-1 text-xs text-slate-500">{t.mapUrl}</p>
-          <input className="input" placeholder={t.exMap} value={googleMapUrl} onChange={(e) => setGoogleMapUrl(e.target.value)} />
+          <input className="input" value={googleMapUrl} onChange={(e) => setGoogleMapUrl(e.target.value)} />
         </div>
         <div className="md:col-span-2">
           <p className="mb-1 text-xs text-slate-500">{t.description}</p>
-          <textarea className="input min-h-24" placeholder={t.exDesc} value={description} onChange={(e) => setDescription(e.target.value)} />
+          <textarea className="input min-h-24" value={description} onChange={(e) => setDescription(e.target.value)} />
         </div>
         <div className="md:col-span-2">
           <p className="mb-1 text-xs text-slate-500">{t.tags}</p>
-          <input className="input" placeholder={t.exTags} value={tags} onChange={(e) => setTags(e.target.value)} />
+          <input className="input" value={tags} onChange={(e) => setTags(e.target.value)} />
         </div>
         <div className="md:col-span-2">
           <p className="mb-1 text-xs text-slate-500">{t.tips}</p>
-          <textarea className="input min-h-20" placeholder={t.exTips} value={tips} onChange={(e) => setTips(e.target.value)} />
+          <textarea className="input min-h-20" value={tips} onChange={(e) => setTips(e.target.value)} />
+        </div>
+        <div className="md:col-span-2">
+          <p className="mb-1 text-xs text-slate-500">{t.images}</p>
+          <textarea
+            className="input min-h-24"
+            value={imageUrlsText}
+            onChange={(e) => setImageUrlsText(e.target.value)}
+            placeholder="https://...jpg"
+          />
         </div>
         <div className="md:col-span-2">
           <p className="mb-1 text-xs text-slate-500">{t.nickname}</p>
-          <input className="input" placeholder={t.exNick} value={nickname} onChange={(e) => setNickname(e.target.value)} />
+          <input className="input" value={nickname} onChange={(e) => setNickname(e.target.value)} />
         </div>
         <button type="submit" className="btn-primary md:col-span-2" disabled={pending}>
           {pending ? t.sending : t.submit}

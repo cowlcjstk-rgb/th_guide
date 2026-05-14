@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import SideMenu from "@/components/side-menu";
+import AnalyticsTracker from "@/components/analytics-tracker";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -15,6 +16,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <AnalyticsTracker />
       <button
         className="fixed left-3 top-3 z-50 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold shadow lg:hidden"
         onClick={() => setMobileMenuOpen((v) => !v)}

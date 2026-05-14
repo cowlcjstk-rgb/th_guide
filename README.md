@@ -59,6 +59,7 @@ Run SQL in Supabase SQL editor:
 - `supabase/schema.sql`
 - If the DB already exists, run additional migration:
   - `supabase/upgrade_pending_workflow.sql`
+  - `supabase/upgrade_search_route_analytics.sql`
 
 ## Hydration warning note
 

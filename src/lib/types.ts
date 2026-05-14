@@ -42,6 +42,16 @@ export type TripPlan = {
   created_at: string;
 };
 
+export type PlaceSubmissionImage = {
+  id: string;
+  place_id: string;
+  image_url: string;
+  moderation_status: "pending" | "approved" | "rejected";
+  review_note: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+};
+
 export type CommunitySection =
   | "top-rated"
   | "latest-reviews"

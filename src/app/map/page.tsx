@@ -5,7 +5,7 @@ import { getPublishedPlaces } from "@/lib/supabase";
 export const dynamic = "force-dynamic";
 
 export default async function MapPage() {
-  const places = await getPublishedPlaces();
+  const places = await getPublishedPlaces({ limit: 650 });
   const geocodedCount = places.filter((p) => p.latitude != null && p.longitude != null).length;
   const citySummary = countBy(places, (p) => inferThaiCity(p)).slice(0, 6);
 

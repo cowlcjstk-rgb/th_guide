@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { hashPassword, normalizeEmail, normalizeLoginId, normalizePhone } from "@/lib/auth";
+import { trackEventServer } from "@/lib/analytics";
 import { applyRateLimit } from "@/lib/rate-limit";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
@@ -103,5 +104,15 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
+  await trackEventServer({
+    event_name: "signup_complete",
+    path: "/signup",
+    user_id: data.id,
+    meta: {
+      has_kakao: Boolean(body.kakao_id?.trim()),
+      has_line: Boolean(body.line_id?.trim()),
+      has_telegram: Boolean(body.telegram_id?.trim()),
+    },
+  });
   return NextResponse.json({ member: data });
 }
