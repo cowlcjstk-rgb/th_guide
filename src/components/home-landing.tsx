@@ -13,11 +13,12 @@ type Props = {
   latest: Place[];
   topRoutes: TripPlan[];
   popularPlaces: Place[];
+  totalRouteCount: number;
 };
 
 const FIRST_VISIT_KEY = "tg_first_visit_seen";
 
-export default function HomeLanding({ places, featured, latest, topRoutes, popularPlaces }: Props) {
+export default function HomeLanding({ places, featured, latest, topRoutes, popularPlaces, totalRouteCount }: Props) {
   const [latestOpen, setLatestOpen] = useState(true);
   const [latestLimit, setLatestLimit] = useState(6);
   const [showStarter, setShowStarter] = useState(false);
@@ -91,7 +92,7 @@ export default function HomeLanding({ places, featured, latest, topRoutes, popul
             </div>
             <div className="rounded-xl border border-slate-200/90 bg-white/85 p-3">
               <p className="text-[11px] text-slate-500">공유 동선</p>
-              <p className="mt-1 text-xl font-semibold text-slate-900">{topRoutes.length}</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">{totalRouteCount}</p>
             </div>
           </div>
         </div>

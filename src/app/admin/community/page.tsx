@@ -55,6 +55,18 @@ export default function AdminCommunityPage() {
     return map;
   }, [items]);
 
+  const uniqueReviews = useMemo(() => {
+    const seen = new Set<string>();
+    const list: AdminReview[] = [];
+    for (const review of reviews) {
+      const key = `${review.place_id}::${review.nickname}::${review.comment ?? ""}::${review.rating}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      list.push(review);
+    }
+    return list;
+  }, [reviews]);
+
   async function loadAll() {
     setLoading(true);
     setMessage("");
@@ -179,7 +191,7 @@ export default function AdminCommunityPage() {
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
           <span className="chip">문구 항목: {items.length}</span>
           <span className="chip">공유 동선: {routes.length}</span>
-          <span className="chip">리뷰: {reviews.length}</span>
+          <span className="chip">리뷰: {uniqueReviews.length}</span>
         </div>
         {message ? <p className="mt-3 text-sm text-rose-600">{message}</p> : null}
       </div>
@@ -253,7 +265,7 @@ export default function AdminCommunityPage() {
       <section className="panel p-5">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">리뷰 관리</h2>
         <div className="mt-3 space-y-2">
-          {reviews.map((review) => (
+          {uniqueReviews.map((review) => (
             <article key={review.id} className="rounded-xl border border-slate-200 bg-white p-3">
               <p className="text-sm font-semibold text-slate-900">
                 {review.nickname} · {"★".repeat(Math.max(1, Math.min(5, Number(review.rating) || 0)))}
@@ -267,10 +279,9 @@ export default function AdminCommunityPage() {
               </button>
             </article>
           ))}
-          {reviews.length === 0 ? <p className="text-sm text-slate-500">등록된 리뷰가 없습니다.</p> : null}
+          {uniqueReviews.length === 0 ? <p className="text-sm text-slate-500">등록된 리뷰가 없습니다.</p> : null}
         </div>
       </section>
     </section>
   );
 }
-

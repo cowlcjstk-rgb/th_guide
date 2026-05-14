@@ -90,6 +90,19 @@ export async function getTopApprovedTripPlans(limit = 5): Promise<TripPlan[]> {
   return data as TripPlan[];
 }
 
+export async function getApprovedTripPlanCount(): Promise<number> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return 0;
+
+  const { count, error } = await supabase
+    .from("trip_plans")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "approved");
+
+  if (error) return 0;
+  return Number(count ?? 0);
+}
+
 export async function getPopularPlaces(limit = 6): Promise<Place[]> {
   const supabase = getSupabaseClient();
   if (!supabase) return mockPlaces.slice(0, limit);

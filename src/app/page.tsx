@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import HomeLanding from "@/components/home-landing";
-import { getPopularPlaces, getPublishedPlaces, getTopApprovedTripPlans } from "@/lib/supabase";
+import { getApprovedTripPlanCount, getPopularPlaces, getPublishedPlaces, getTopApprovedTripPlans } from "@/lib/supabase";
 
 export const revalidate = 300;
 export const metadata: Metadata = {
@@ -14,13 +14,23 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const [places, topRoutes, popularPlaces] = await Promise.all([
+  const [places, topRoutes, popularPlaces, totalRouteCount] = await Promise.all([
     getPublishedPlaces({ limit: 500 }),
     getTopApprovedTripPlans(5),
     getPopularPlaces(6),
+    getApprovedTripPlanCount(),
   ]);
   const featured = places.filter((item) => item.is_featured).slice(0, 3);
   const latest = places.slice(0, 40);
 
-  return <HomeLanding places={places} featured={featured} latest={latest} topRoutes={topRoutes} popularPlaces={popularPlaces} />;
+  return (
+    <HomeLanding
+      places={places}
+      featured={featured}
+      latest={latest}
+      topRoutes={topRoutes}
+      popularPlaces={popularPlaces}
+      totalRouteCount={totalRouteCount}
+    />
+  );
 }
