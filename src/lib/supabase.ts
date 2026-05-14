@@ -103,6 +103,43 @@ export async function getApprovedTripPlanCount(): Promise<number> {
   return Number(count ?? 0);
 }
 
+export type HomeRecentReview = {
+  id: string;
+  nickname: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  place_id: string;
+  place_name: string;
+  place_slug: string | null;
+};
+
+export async function getRecentHomeReviews(limit = 12): Promise<HomeRecentReview[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("place_reviews")
+    .select("id,place_id,nickname,rating,comment,created_at,places(name,slug)")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) return [];
+  return (data as Array<Record<string, unknown>>).map((row) => {
+    const place = (row.places ?? null) as { name?: string; slug?: string } | null;
+    return {
+      id: String(row.id ?? ""),
+      nickname: String(row.nickname ?? "Guest"),
+      rating: Number(row.rating ?? 0),
+      comment: (row.comment as string | null) ?? null,
+      created_at: String(row.created_at ?? ""),
+      place_id: String(row.place_id ?? ""),
+      place_name: place?.name?.trim() || "Unknown place",
+      place_slug: place?.slug?.trim() || null,
+    } satisfies HomeRecentReview;
+  });
+}
+
 export async function getPopularPlaces(limit = 6): Promise<Place[]> {
   const supabase = getSupabaseClient();
   if (!supabase) return mockPlaces.slice(0, limit);

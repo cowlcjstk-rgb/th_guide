@@ -8,6 +8,10 @@
   --line: #d7dfe8;
   --brand: #0f172a;
   --brand-soft: #e2e8f0;
+  --accent-mint: #0f766e;
+  --accent-mint-soft: #ccfbf1;
+  --accent-sand: #92400e;
+  --accent-sand-soft: #fef3c7;
 }
 
 @theme inline {
@@ -31,7 +35,8 @@ a {
 .mesh-bg {
   background:
     radial-gradient(circle at 0% 10%, #dff2ff 0%, transparent 35%),
-    radial-gradient(circle at 100% 0%, #d8e7ff 0%, transparent 30%),
+    radial-gradient(circle at 82% 0%, #fef3c7 0%, transparent 28%),
+    radial-gradient(circle at 20% 70%, #ccfbf1 0%, transparent 32%),
     linear-gradient(180deg, #f7fafc 0%, #eff3f7 100%);
 }
 
@@ -59,7 +64,7 @@ a {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  border: 1px solid #cfd9e4;
+  border: 1px solid #cbd5e1;
   padding: 0.25rem 0.6rem;
   font-size: 0.75rem;
   color: #334155;
@@ -90,6 +95,14 @@ a {
   color: #0f172a;
   font-size: 0.875rem;
   font-weight: 600;
+}
+
+.accent-mint {
+  color: var(--accent-mint);
+}
+
+.accent-sand {
+  color: var(--accent-sand);
 }
 
 .input {
