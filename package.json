@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "check:prelaunch": "powershell -ExecutionPolicy Bypass -File scripts/prelaunch-check.ps1 -BaseUrl http://localhost:3000",
     "lint": "eslint",
     "scrape:monkey": "node scripts/scrape-monkey-places.mjs",
     "import:places:xlsx": "node scripts/import-places-from-xlsx.mjs",

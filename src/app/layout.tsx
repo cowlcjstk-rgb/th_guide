@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+import AppShell from "@/components/app-shell";
+import { AuthProvider } from "@/components/auth-provider";
 import { LanguageProvider } from "@/components/language-provider";
-import SideMenu from "@/components/side-menu";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -10,8 +11,8 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Bangkok Place Guide",
-  description: "Minimal Bangkok curation platform for Korean travelers",
+  title: "Thailand Guide",
+  description: "Thailand traveler community platform",
 };
 
 export default function RootLayout({
@@ -22,18 +23,13 @@ export default function RootLayout({
   return (
     <html lang="ko" className={`${geistSans.variable} h-full antialiased`}>
       <body suppressHydrationWarning className="mesh-bg min-h-full text-slate-900">
-        <LanguageProvider>
-          <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-4 lg:grid-cols-[260px_1fr]">
-            <SideMenu />
-            <div>
-              <main>{children}</main>
-              <footer className="mt-10 pb-8 text-xs text-slate-500">
-                Built for Bangkok local curation · MVP edition
-              </footer>
-            </div>
-          </div>
-        </LanguageProvider>
+        <AuthProvider>
+          <LanguageProvider>
+            <AppShell>{children}</AppShell>
+          </LanguageProvider>
+        </AuthProvider>
       </body>
     </html>
   );
 }
+

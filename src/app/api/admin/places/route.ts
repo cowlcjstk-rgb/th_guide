@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { isAdminRequest } from "@/lib/admin-auth";
 import { slugify } from "@/lib/utils";
 
 type CreatePlaceBody = {
   name: string;
   slug: string;
+  city?: string;
   description?: string;
   address?: string;
   district?: string;
@@ -19,16 +21,14 @@ type CreatePlaceBody = {
 };
 
 export async function POST(req: NextRequest) {
-  const adminToken = process.env.ADMIN_WRITE_TOKEN;
   const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-  if (!adminToken || !serviceRole || !url) {
+  if (!serviceRole || !url) {
     return NextResponse.json({ error: "Server env is missing" }, { status: 500 });
   }
 
-  const token = req.headers.get("x-admin-token");
-  if (token !== adminToken) {
+  if (!isAdminRequest(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
     .insert({
       name: body.name,
       slug: cleanedSlug,
+      city: body.city ?? null,
       description: body.description ?? null,
       address: body.address ?? null,
       district: body.district ?? null,
@@ -56,10 +57,37 @@ export async function POST(req: NextRequest) {
       tips: body.tips ?? null,
       is_featured: body.is_featured ?? false,
       is_published: body.is_published ?? false,
+      submission_status: "approved",
+      submitted_by: null,
       last_verified_at: new Date().toISOString(),
     })
     .select("id, name, slug")
     .single();
+
+  if (error && (error.message.includes("submission_status") || error.message.includes("city"))) {
+    const fallback = await supabase
+      .from("places")
+      .insert({
+        name: body.name,
+        slug: cleanedSlug,
+        description: body.description ?? null,
+        address: body.address ?? null,
+        district: body.district ?? null,
+        category: body.category ?? null,
+        tags: body.tags ?? [],
+        latitude: body.latitude ?? null,
+        longitude: body.longitude ?? null,
+        google_map_url: body.google_map_url ?? null,
+        tips: body.tips ?? null,
+        is_featured: body.is_featured ?? false,
+        is_published: body.is_published ?? false,
+        last_verified_at: new Date().toISOString(),
+      })
+      .select("id, name, slug")
+      .single();
+    if (fallback.error) return NextResponse.json({ error: fallback.error.message }, { status: 400 });
+    return NextResponse.json({ ok: true, place: fallback.data });
+  }
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });

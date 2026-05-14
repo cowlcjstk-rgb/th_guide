@@ -12,9 +12,13 @@ export default async function CommunityPage() {
     ? await supabase.from("place_reviews").select("*").order("created_at", { ascending: false }).limit(120)
     : { data: [] };
 
-  const { data: plans } = supabase
+  const { data: rawPlans } = supabase
     ? await supabase.from("trip_plans").select("*").order("created_at", { ascending: false }).limit(120)
     : { data: [] };
+  const plans = (rawPlans ?? []).filter((plan) => !plan.status || plan.status === "approved");
+  const { data: contents } = supabase
+    ? await supabase.from("community_contents").select("*").order("section").order("sort_order")
+    : { data: [] };
 
-  return <CommunityHub places={places} reviews={reviews ?? []} plans={plans ?? []} />;
+  return <CommunityHub places={places} reviews={reviews ?? []} plans={plans} contents={contents ?? []} section="home" />;
 }

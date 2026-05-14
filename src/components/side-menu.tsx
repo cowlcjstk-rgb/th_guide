@@ -1,16 +1,16 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { useLanguage } from "@/components/language-provider";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
+import { useAuth } from "@/components/auth-provider";
 
 function NavLink({ href, label, active }: { href: string; label: string; active: boolean }) {
   return (
     <Link
       href={href}
       className={`block rounded-lg px-3 py-2 text-sm transition ${
-        active ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-100"
+        active ? "bg-slate-200 text-slate-900" : "text-slate-700 hover:bg-slate-100"
       }`}
     >
       {label}
@@ -18,106 +18,144 @@ function NavLink({ href, label, active }: { href: string; label: string; active:
   );
 }
 
+function Section({
+  title,
+  open,
+  setOpen,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  setOpen: (value: boolean) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <button
+        className="mb-2 flex w-full items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-slate-500"
+        onClick={() => setOpen(!open)}
+      >
+        <span>{title}</span>
+        <span>{open ? "−" : "+"}</span>
+      </button>
+      {open ? <div className="space-y-1">{children}</div> : null}
+    </div>
+  );
+}
+
 export default function SideMenu() {
   const pathname = usePathname();
-  const { lang, setLang } = useLanguage();
-  const [hash, setHash] = useState("");
+  const router = useRouter();
+  const { user, logout } = useAuth();
+  const [mainOpen, setMainOpen] = useState(true);
+  const [communityOpen, setCommunityOpen] = useState(true);
+  const [registerOpen, setRegisterOpen] = useState(true);
+  const [accountOpen, setAccountOpen] = useState(true);
+  const [adminOpen, setAdminOpen] = useState(true);
 
-  useEffect(() => {
-    const sync = () => setHash(window.location.hash || "");
-    sync();
-    window.addEventListener("hashchange", sync);
-    return () => window.removeEventListener("hashchange", sync);
-  }, []);
-
-  const t = useMemo(
-    () =>
-      lang === "ko"
-        ? {
-            brand: "Thailand Guide",
-            platform: "플랫폼",
-            community: "커뮤니티",
-            admin: "관리",
-            home: "홈",
-            places: "장소 탐색",
-            map: "이동 경로",
-            commHome: "커뮤니티 홈",
-            topRated: "평점 랭킹",
-            latestReviews: "최신 리뷰",
-            routeShares: "동선 공유",
-            travelGuide: "여행 가이드",
-            faq: "자주 묻는 질문",
-            adminPlaces: "장소 등록",
-          }
-        : {
-            brand: "Thailand Guide",
-            platform: "Platform",
-            community: "Community",
-            admin: "Admin",
-            home: "Home",
-            places: "Places",
-            map: "Route Planner",
-            commHome: "Community Home",
-            topRated: "Top Rated",
-            latestReviews: "Latest Reviews",
-            routeShares: "Route Shares",
-            travelGuide: "Travel Guide",
-            faq: "FAQ",
-            adminPlaces: "Place Admin",
-          },
-    [lang]
-  );
-
-  const isCommunity = pathname === "/community";
+  const nightlifeUrl = (process.env.NEXT_PUBLIC_NIGHTLIFE_PLATFORM_URL || process.env.NIGHTLIFE_PLATFORM_URL || "").trim();
+  const isAdmin = user?.role === "admin";
 
   return (
-    <aside className="panel h-fit p-4 lg:sticky lg:top-4">
+    <aside className="h-full p-4">
       <div className="flex items-center justify-between">
         <Link href="/" className="text-sm font-bold tracking-tight text-slate-900">
-          {t.brand}
+          Thailand Guide
         </Link>
-        <div className="flex rounded-lg border border-slate-200 bg-white p-1">
-          <button
-            className={`rounded-md px-2 py-1 text-xs ${lang === "ko" ? "bg-slate-900 text-white" : "text-slate-600"}`}
-            onClick={() => setLang("ko")}
-          >
-            KO
-          </button>
-          <button
-            className={`rounded-md px-2 py-1 text-xs ${lang === "en" ? "bg-slate-900 text-white" : "text-slate-600"}`}
-            onClick={() => setLang("en")}
-          >
-            EN
-          </button>
-        </div>
       </div>
 
+      {user ? (
+        <p className="mt-3 text-xs text-slate-600">
+          {user.name} {isAdmin ? "(ADMIN)" : ""}
+        </p>
+      ) : null}
+
       <div className="mt-4 space-y-4">
-        <div>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{t.platform}</p>
-          <div className="space-y-1">
-            <NavLink href="/" label={t.home} active={pathname === "/"} />
-            <NavLink href="/places" label={t.places} active={pathname.startsWith("/places")} />
-            <NavLink href="/map" label={t.map} active={pathname.startsWith("/map")} />
-          </div>
-        </div>
+        <Section title="메인" open={mainOpen} setOpen={setMainOpen}>
+          <NavLink href="/" label="홈" active={pathname === "/"} />
+          <NavLink href="/places" label="장소 탐색" active={pathname.startsWith("/places")} />
+          <NavLink href="/map" label="지도 플래너" active={pathname.startsWith("/map")} />
+          {nightlifeUrl ? (
+            <a href={nightlifeUrl} target="_blank" rel="noreferrer" className="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100">
+              밤문화 플랫폼(외부)
+            </a>
+          ) : null}
+        </Section>
+
+        <Section title="커뮤니티" open={communityOpen} setOpen={setCommunityOpen}>
+          <NavLink href="/community" label="커뮤니티 홈" active={pathname === "/community"} />
+          <NavLink href="/community/top-rated" label="평점 랭킹" active={pathname === "/community/top-rated"} />
+          <NavLink href="/community/latest-reviews" label="최신 리뷰" active={pathname === "/community/latest-reviews"} />
+          <NavLink href="/community/route-shares" label="동선 공유" active={pathname === "/community/route-shares"} />
+          <NavLink href="/community/guide" label="여행 가이드" active={pathname === "/community/guide"} />
+          <NavLink href="/community/faq" label="자주 묻는 질문" active={pathname === "/community/faq"} />
+        </Section>
+
+        <Section title="등록" open={registerOpen} setOpen={setRegisterOpen}>
+          <NavLink href="/submit/place" label="장소 등록" active={pathname.startsWith("/submit/place")} />
+        </Section>
+
+        <Section title="로그인" open={accountOpen} setOpen={setAccountOpen}>
+          {!user ? (
+            <>
+              <NavLink href="/auth/login" label="로그인" active={pathname === "/auth/login"} />
+              <NavLink href="/signup" label="회원가입" active={pathname === "/signup"} />
+              <NavLink href="/auth/find-id" label="아이디 찾기" active={pathname === "/auth/find-id"} />
+              <NavLink href="/auth/reset-password" label="비밀번호 찾기" active={pathname === "/auth/reset-password"} />
+            </>
+          ) : (
+            <>
+              <NavLink href="/me" label="회원 정보 확인" active={pathname === "/me"} />
+              <button
+                className="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
+                onClick={async () => {
+                  await logout();
+                  router.push("/");
+                }}
+              >
+                로그아웃
+              </button>
+            </>
+          )}
+        </Section>
+
+        {isAdmin ? (
+          <Section title="관리" open={adminOpen} setOpen={setAdminOpen}>
+            <NavLink href="/admin" label="대시보드" active={pathname === "/admin"} />
+            <NavLink href="/admin/places" label="장소 등록(관리자)" active={pathname === "/admin/places"} />
+            <NavLink href="/admin/review" label="승인 관리" active={pathname === "/admin/review"} />
+            <NavLink href="/admin/community" label="커뮤니티 관리" active={pathname === "/admin/community"} />
+            <NavLink href="/admin/members" label="회원 관리" active={pathname === "/admin/members"} />
+          </Section>
+        ) : null}
 
         <div>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{t.community}</p>
-          <div className="space-y-1">
-            <NavLink href="/community" label={t.commHome} active={isCommunity && hash === ""} />
-            <NavLink href="/community#top-rated" label={t.topRated} active={isCommunity && hash === "#top-rated"} />
-            <NavLink href="/community#latest-reviews" label={t.latestReviews} active={isCommunity && hash === "#latest-reviews"} />
-            <NavLink href="/community#route-shares" label={t.routeShares} active={isCommunity && hash === "#route-shares"} />
-            <NavLink href="/community#guide" label={t.travelGuide} active={isCommunity && hash === "#guide"} />
-            <NavLink href="/community#faq" label={t.faq} active={isCommunity && hash === "#faq"} />
-          </div>
-        </div>
-
-        <div>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{t.admin}</p>
-          <div className="space-y-1">
-            <NavLink href="/admin/places" label={t.adminPlaces} active={pathname.startsWith("/admin")} />
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">문의 채널</p>
+          <div className="space-y-2">
+            <a
+              href="https://open.kakao.com/o/sW9C8Rui"
+              target="_blank"
+              rel="noreferrer"
+              className="block overflow-hidden rounded-xl border border-slate-200 bg-white"
+            >
+              <img src="/banners/kakao-openchat.svg" alt="카카오톡 오픈채팅 문의 채널" className="h-auto w-full" />
+            </a>
+            <a
+              href="https://line.me/ti/g2/Qtxu4_Yt8Ii2PYERHPrxobMY-UzAjH91Lwy4Ug?utm_source=invitation&utm_medium=link_copy&utm_campaign=default"
+              target="_blank"
+              rel="noreferrer"
+              className="block overflow-hidden rounded-xl border border-slate-200 bg-white"
+            >
+              <img src="/banners/line-openchat.svg" alt="라인 오픈챗 문의 채널" className="h-auto w-full" />
+            </a>
+            <a
+              href="https://t.me/th_aapp"
+              target="_blank"
+              rel="noreferrer"
+              className="block overflow-hidden rounded-xl border border-slate-200 bg-white"
+            >
+              <img src="/banners/telegram-contact.svg" alt="텔레그램 문의 채널" className="h-auto w-full" />
+            </a>
           </div>
         </div>
       </div>

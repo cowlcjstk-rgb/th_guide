@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auditLog } from "@/lib/audit-log";
+import { applyRateLimit } from "@/lib/rate-limit";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
 export async function GET(req: NextRequest) {
@@ -20,6 +22,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const limited = applyRateLimit(req, "community:reviews:create", { max: 12, windowMs: 60_000 });
+  if (limited) return limited;
+
   const supabase = getSupabaseAdminClient();
   if (!supabase) return NextResponse.json({ error: "Server env missing" }, { status: 500 });
 
@@ -45,5 +50,6 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  auditLog("review_created", { reviewId: data.id, placeId: data.place_id, rating: data.rating });
   return NextResponse.json({ review: data });
 }

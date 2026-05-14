@@ -1,123 +1,155 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
+import { useMemo, useState } from "react";
 import PlaceCard from "@/components/place-card";
-import { useLanguage } from "@/components/language-provider";
-import { Place } from "@/lib/types";
+import { countBy, inferThaiCity } from "@/lib/geo";
+import { toFilterSlug } from "@/lib/places-seo";
+import { Place, TripPlan } from "@/lib/types";
 
 type Props = {
   places: Place[];
   featured: Place[];
   latest: Place[];
-  topDistricts: string[];
+  topRoutes: TripPlan[];
 };
 
-export default function HomeLanding({ places, featured, latest, topDistricts }: Props) {
-  const { lang } = useLanguage();
+export default function HomeLanding({ places, featured, latest, topRoutes }: Props) {
+  const [latestOpen, setLatestOpen] = useState(true);
+  const [latestLimit, setLatestLimit] = useState(6);
 
-  const districtCount = new Set(places.map((p) => p.district).filter(Boolean)).size;
-  const categoryCount = new Set(places.map((p) => p.category).filter(Boolean)).size;
+  const cityStats = useMemo(() => countBy(places, (p) => inferThaiCity(p)).slice(0, 6), [places]);
+  const categoryStats = useMemo(() => countBy(places, (p) => p.category ?? "General").slice(0, 6), [places]);
+  const topCities = cityStats.slice(0, 4);
+  const topCategories = categoryStats.slice(0, 6);
 
-  const t =
-    lang === "ko"
-      ? {
-          chip: "태국 여행 가이드",
-          title: "현지감 있는 태국 여행 가이드",
-          desc: "실제 방문 기반 장소 데이터와 커뮤니티 리뷰, 이동 경로까지 한 번에 확인할 수 있습니다.",
-          explore: "장소 탐색",
-          map: "이동 경로 만들기",
-          stats: "데이터 현황",
-          total: "전체 장소",
-          district: "지역 수",
-          category: "카테고리 수",
-          districtBrowse: "지역별 바로가기",
-          openCatalog: "전체 리스트",
-          featured: "추천 장소",
-          latest: "최신 등록",
-          seeAll: "전체 보기",
-          browseCatalog: "리스트 이동",
-        }
-      : {
-          chip: "Thailand Travel Guide",
-          title: "Practical Thailand travel guide",
-          desc: "Explore real-visit places, community reviews, and route planning in one flow.",
-          explore: "Explore places",
-          map: "Build route",
-          stats: "Live data stats",
-          total: "Total places",
-          district: "Districts",
-          category: "Categories",
-          districtBrowse: "Quick district access",
-          openCatalog: "Open full list",
-          featured: "Featured picks",
-          latest: "Latest updates",
-          seeAll: "See all",
-          browseCatalog: "Browse list",
-        };
+  const shownLatest = latest.slice(0, latestLimit);
+  const canLoadMore = latestLimit < latest.length;
+  const verifiedCount = places.filter((place) => Boolean(place.last_verified_at)).length;
 
   return (
-    <section className="w-full space-y-8">
-      <div className="panel overflow-hidden p-7 md:p-10">
+    <section className="w-full space-y-6">
+      <div className="panel relative overflow-hidden p-5 md:p-8">
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_right,#dbeafe_0,transparent_38%),radial-gradient(circle_at_bottom_left,#cffafe_0,transparent_35%)]" />
         <div className="max-w-3xl">
-          <p className="chip">{t.chip}</p>
+          <p className="chip">Thailand Traveler Community</p>
           <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight text-slate-900 md:text-5xl">
-            {t.title}
+            태국 여행자 커뮤니티
           </h1>
-          <p className="mt-4 text-sm leading-6 text-slate-600 md:text-base">{t.desc}</p>
+          <p className="mt-4 text-sm leading-6 text-slate-600 md:text-base">
+            검증된 장소, 커뮤니티 리뷰, 실제 이동 동선을 한 번에 확인하세요.
+          </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link href="/places" className="btn-primary">
-              {t.explore}
+              장소 탐색
             </Link>
             <Link href="/map" className="btn-secondary">
-              {t.map}
+              지도 플래너
             </Link>
+          </div>
+          <div className="mt-5 grid gap-2 sm:grid-cols-3">
+            <div className="rounded-xl border border-slate-200/90 bg-white/85 p-3">
+              <p className="text-[11px] text-slate-500">전체 장소</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">{places.length}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200/90 bg-white/85 p-3">
+              <p className="text-[11px] text-slate-500">검증 완료</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">{verifiedCount}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200/90 bg-white/85 p-3">
+              <p className="text-[11px] text-slate-500">공유 동선</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">{topRoutes.length}</p>
+            </div>
           </div>
         </div>
       </div>
 
-      <section className="panel p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{t.stats}</h2>
+      <section className="panel p-5 md:p-6">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">등록 현황</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           <div className="card p-4">
-            <p className="text-xs text-slate-500">{t.total}</p>
-            <p className="mt-1 text-2xl font-semibold">{places.length}</p>
+            <p className="text-xs text-slate-500">전체 장소</p>
+            <p className="mt-1 text-3xl font-semibold">{places.length}</p>
           </div>
           <div className="card p-4">
-            <p className="text-xs text-slate-500">{t.district}</p>
-            <p className="mt-1 text-2xl font-semibold">{districtCount}</p>
+            <p className="text-xs text-slate-500">도시별 등록 수</p>
+            <div className="mt-2 grid gap-1 text-sm text-slate-700">
+              {cityStats.map(([name, count]) => (
+                <p key={name}>{name}: {count}</p>
+              ))}
+            </div>
           </div>
           <div className="card p-4">
-            <p className="text-xs text-slate-500">{t.category}</p>
-            <p className="mt-1 text-2xl font-semibold">{categoryCount}</p>
+            <p className="text-xs text-slate-500">카테고리별 등록 수</p>
+            <div className="mt-2 grid gap-1 text-sm text-slate-700">
+              {categoryStats.map(([name, count]) => (
+                <p key={name}>{name}: {count}</p>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="panel p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-xl font-semibold tracking-tight">{t.districtBrowse}</h2>
-          <Link href="/places" className="text-sm text-slate-500 hover:text-slate-900">
-            {t.openCatalog}
+      <section className="panel p-5 md:p-6">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">빠른 탐색</h2>
+        <div className="mt-3 grid gap-4 lg:grid-cols-2">
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-xs text-slate-500">도시별 바로가기</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {topCities.map(([city]) => (
+                <Link key={city} href={`/places/city/${toFilterSlug(city)}`} className="chip">
+                  {city}
+                </Link>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <p className="text-xs text-slate-500">카테고리 바로가기</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {topCategories.map(([category]) => (
+                <Link
+                  key={category}
+                  href={`/places?category=${encodeURIComponent(category)}`}
+                  className="chip"
+                >
+                  {category}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="panel p-5 md:p-6">
+        <div className="mb-3 flex items-end justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">인기 동선 TOP5</h2>
+          <Link href="/map" className="text-xs text-slate-500 hover:text-slate-900">
+            전체 보기
           </Link>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {topDistricts.map((d) => (
-            <Link key={d} href={`/places?district=${encodeURIComponent(d)}`} className="chip">
-              {d}
-            </Link>
-          ))}
-        </div>
+        {topRoutes.length > 0 ? (
+          <div className="grid gap-2">
+            {topRoutes.map((plan) => (
+              <Link key={plan.id} href={`/map?plan=${plan.place_ids.join(",")}`} className="rounded-xl border border-slate-200 bg-white p-3">
+                <p className="text-sm font-semibold text-slate-900">{plan.title ?? "추천 동선"}</p>
+                <p className="mt-1 text-xs text-slate-600">{plan.place_ids.length}개 장소 · {new Date(plan.created_at).toLocaleDateString("ko-KR")}</p>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500">아직 공개된 동선이 없습니다.</p>
+        )}
       </section>
 
       {featured.length > 0 ? (
         <section>
           <div className="mb-4 flex items-end justify-between">
-            <h2 className="text-xl font-semibold tracking-tight">{t.featured}</h2>
+            <h2 className="text-xl font-semibold tracking-tight">추천 장소</h2>
             <Link href="/places" className="text-sm text-slate-500 hover:text-slate-900">
-              {t.seeAll}
+              전체 보기
             </Link>
           </div>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {featured.map((place) => (
               <PlaceCard key={place.id} place={place} />
             ))}
@@ -125,18 +157,27 @@ export default function HomeLanding({ places, featured, latest, topDistricts }: 
         </section>
       ) : null}
 
-      <section>
+      <section className="panel p-5 md:p-6">
         <div className="mb-4 flex items-end justify-between">
-          <h2 className="text-xl font-semibold tracking-tight">{t.latest}</h2>
-          <Link href="/places" className="text-sm text-slate-500 hover:text-slate-900">
-            {t.browseCatalog}
-          </Link>
+          <h2 className="text-xl font-semibold tracking-tight">최신 등록</h2>
+          <button className="text-sm text-slate-500 hover:text-slate-900" onClick={() => setLatestOpen((v) => !v)}>
+            {latestOpen ? "접기" : "펼치기"}
+          </button>
         </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          {latest.map((place) => (
-            <PlaceCard key={place.id} place={place} />
-          ))}
-        </div>
+        {latestOpen ? (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {shownLatest.map((place) => (
+                <PlaceCard key={place.id} place={place} />
+              ))}
+            </div>
+            {canLoadMore ? (
+              <button className="btn-secondary mt-4" onClick={() => setLatestLimit((n) => Math.min(n + 8, latest.length))}>
+                더 불러오기
+              </button>
+            ) : null}
+          </>
+        ) : null}
       </section>
     </section>
   );

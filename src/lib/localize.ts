@@ -2,25 +2,23 @@ import { Lang } from "@/components/language-provider";
 import { Place } from "@/lib/types";
 
 function hasHangul(text: string) {
-  return /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(text);
+  return /[\u3131-\u318E\uAC00-\uD7A3]/.test(text);
 }
 
 export function localizePlaceName(place: Place, lang: Lang) {
-  const name = place.name ?? "";
-  const desc = place.description ?? "";
-  const [a, b] = desc.split(" / ").map((v) => v.trim());
+  const name = (place.name ?? "").trim();
+  const description = (place.description ?? "").trim();
+  const [left, right] = description.split(" / ").map((v) => v.trim());
 
   if (lang === "ko") {
-    if (a && hasHangul(a)) return `${a}${name && name !== a ? ` (${name})` : ""}`;
-    if (b && hasHangul(b)) return `${b}${name && name !== b ? ` (${name})` : ""}`;
+    if (left && hasHangul(left)) return name === left ? left : `${left} (${name})`;
+    if (right && hasHangul(right)) return name === right ? right : `${right} (${name})`;
     return name;
   }
 
-  if (lang === "en") {
-    if (!hasHangul(name)) return name;
-    if (a && !hasHangul(a)) return a;
-    if (b && !hasHangul(b)) return b;
-    return name;
-  }
+  if (!hasHangul(name)) return name;
+  if (left && !hasHangul(left)) return left;
+  if (right && !hasHangul(right)) return right;
   return name;
 }
+

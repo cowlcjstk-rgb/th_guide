@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useLanguage } from "@/components/language-provider";
 import { PlaceReview } from "@/lib/types";
 
 export default function PlaceReviews({ placeId }: { placeId: string }) {
+  const { lang } = useLanguage();
   const [reviews, setReviews] = useState<PlaceReview[]>([]);
   const [nickname, setNickname] = useState("");
   const [rating, setRating] = useState(5);
@@ -41,27 +43,45 @@ export default function PlaceReviews({ placeId }: { placeId: string }) {
       }),
     });
     setPending(false);
-    if (res.ok) {
-      setComment("");
-      const refresh = await fetch(`/api/community/reviews?placeId=${placeId}`);
-      const data = await refresh.json();
-      if (refresh.ok) setReviews(data.reviews ?? []);
-    }
+    if (!res.ok) return;
+    setComment("");
+    const refresh = await fetch(`/api/community/reviews?placeId=${placeId}`);
+    const data = await refresh.json();
+    if (refresh.ok) setReviews(data.reviews ?? []);
   };
+
+  const t =
+    lang === "ko"
+      ? {
+          title: "커뮤니티 별점",
+          empty: "아직 리뷰가 없습니다",
+          nick: "닉네임",
+          comment: "짧은 리뷰를 남겨 주세요",
+          submit: "리뷰 등록",
+          saving: "저장 중...",
+        }
+      : {
+          title: "Community rating",
+          empty: "No reviews yet",
+          nick: "Nickname",
+          comment: "Leave a short comment",
+          submit: "Submit review",
+          saving: "Saving...",
+        };
 
   return (
     <section className="card p-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Community Rating</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{t.title}</h2>
         <p className="text-sm text-slate-700">
-          {reviews.length ? `${average.toFixed(1)} / 5 (${reviews.length})` : "No reviews yet"}
+          {reviews.length ? `${average.toFixed(1)} / 5 (${reviews.length})` : t.empty}
         </p>
       </div>
 
       <form onSubmit={submit} className="mt-4 grid gap-2">
         <input
           className="input"
-          placeholder="Nickname"
+          placeholder={t.nick}
           value={nickname}
           onChange={(e) => setNickname(e.target.value)}
         />
@@ -74,12 +94,12 @@ export default function PlaceReviews({ placeId }: { placeId: string }) {
         </select>
         <textarea
           className="input min-h-20"
-          placeholder="Leave a short comment"
+          placeholder={t.comment}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
         />
         <button className="btn-primary" type="submit" disabled={pending}>
-          {pending ? "Saving..." : "Submit review"}
+          {pending ? t.saving : t.submit}
         </button>
       </form>
 
@@ -89,10 +109,11 @@ export default function PlaceReviews({ placeId }: { placeId: string }) {
             <p className="text-sm font-semibold text-slate-800">
               {r.nickname || "Guest"} · {"★".repeat(r.rating)}
             </p>
-            <p className="mt-1 text-sm text-slate-600">{r.comment || "No comment"}</p>
+            <p className="mt-1 text-sm text-slate-600">{r.comment || "-"}</p>
           </article>
         ))}
       </div>
     </section>
   );
 }
+

@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { mockPlaces } from "@/lib/mock-data";
-import { Place } from "@/lib/types";
+import { Place, TravelProduct, TripPlan } from "@/lib/types";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -38,4 +38,33 @@ export async function getPlaceBySlug(slug: string): Promise<Place | null> {
 
   if (error || !data) return null;
   return data as Place;
+}
+
+export async function getPublishedTravelProducts(): Promise<TravelProduct[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("travel_products")
+    .select("*")
+    .eq("is_published", true)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+  return data as TravelProduct[];
+}
+
+export async function getTopApprovedTripPlans(limit = 5): Promise<TripPlan[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("trip_plans")
+    .select("*")
+    .eq("status", "approved")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) return [];
+  return data as TripPlan[];
 }
