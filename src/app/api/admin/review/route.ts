@@ -21,6 +21,13 @@ export async function GET(req: NextRequest) {
     .order("created_at", { ascending: false })
     .limit(200);
 
+  const { data: editsWithStatus, error: editsStatusError } = await supabase
+    .from("place_edit_requests")
+    .select("*")
+    .eq("status", "pending")
+    .order("created_at", { ascending: false })
+    .limit(200);
+
   const { data: placesFallback, error: placesFallbackError } = placesStatusError
     ? await supabase
         .from("places")
@@ -34,11 +41,23 @@ export async function GET(req: NextRequest) {
     ? await supabase.from("trip_plans").select("*").order("created_at", { ascending: false }).limit(200)
     : { data: plansWithStatus, error: null };
 
+  const { data: editsFallback, error: editsFallbackError } = editsStatusError
+    ? await supabase.from("place_edit_requests").select("*").order("created_at", { ascending: false }).limit(200)
+    : { data: editsWithStatus, error: null };
+
   if (placesFallbackError) return NextResponse.json({ error: placesFallbackError.message }, { status: 400 });
   if (plansFallbackError) return NextResponse.json({ error: plansFallbackError.message }, { status: 400 });
+  if (editsFallbackError) {
+    if (editsFallbackError.message.includes("place_edit_requests")) {
+      return NextResponse.json({ error: "place_edit_requests table is missing. Run upgrade_place_edit_requests.sql first." }, { status: 400 });
+    }
+    return NextResponse.json({ error: editsFallbackError.message }, { status: 400 });
+  }
 
-  const placeIds = (placesFallback ?? []).map((item) => item.id).filter(Boolean);
+  const editPlaceIds = (editsFallback ?? []).map((item) => item.place_id).filter(Boolean);
+  const placeIds = Array.from(new Set([...(placesFallback ?? []).map((item) => item.id).filter(Boolean), ...editPlaceIds]));
   let imagesByPlace: Record<string, unknown[]> = {};
+  let placeById: Record<string, unknown> = {};
   if (placeIds.length > 0) {
     const imagesRes = await supabase
       .from("place_submission_images")
@@ -53,12 +72,25 @@ export async function GET(req: NextRequest) {
         return acc;
       }, {});
     }
+
+    const placeRes = await supabase
+      .from("places")
+      .select("id,name,city,category,address,google_map_url,description,tags,tips")
+      .in("id", placeIds);
+    if (!placeRes.error && placeRes.data) {
+      placeById = placeRes.data.reduce<Record<string, unknown>>((acc, row) => {
+        acc[String(row.id)] = row;
+        return acc;
+      }, {});
+    }
   }
 
   return NextResponse.json({
     places: placesFallback ?? [],
     plans: plansFallback ?? [],
+    editRequests: editsFallback ?? [],
     imagesByPlace,
+    placeById,
   });
 }
 
@@ -68,7 +100,7 @@ export async function POST(req: NextRequest) {
   if (!supabase) return NextResponse.json({ error: "Server env missing" }, { status: 500 });
 
   const body = (await req.json()) as {
-    type?: "place" | "plan" | "image";
+    type?: "place" | "plan" | "image" | "edit";
     id?: string;
     action?: "approve" | "reject";
     note?: string;
@@ -134,6 +166,45 @@ export async function POST(req: NextRequest) {
       })
       .eq("id", body.id);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ ok: true });
+  }
+
+  if (body.type === "edit") {
+    const { data: requestRow, error: reqError } = await supabase
+      .from("place_edit_requests")
+      .select("*")
+      .eq("id", body.id)
+      .maybeSingle();
+    if (reqError) return NextResponse.json({ error: reqError.message }, { status: 400 });
+    if (!requestRow) return NextResponse.json({ error: "request not found" }, { status: 404 });
+
+    if (body.action === "approve") {
+      const rawChanges = (requestRow.requested_changes ?? {}) as Record<string, unknown>;
+      const payload: Record<string, unknown> = {};
+      const allowed = ["name", "city", "category", "address", "description", "google_map_url", "tips", "tags"];
+      for (const key of allowed) {
+        if (!(key in rawChanges)) continue;
+        payload[key] = rawChanges[key];
+      }
+      payload.last_verified_at = new Date().toISOString();
+      payload.updated_at = new Date().toISOString();
+
+      const placeUpdate = await supabase.from("places").update(payload).eq("id", requestRow.place_id);
+      if (placeUpdate.error) return NextResponse.json({ error: placeUpdate.error.message }, { status: 400 });
+    }
+
+    const updateRequest = await supabase
+      .from("place_edit_requests")
+      .update({
+        status: body.action === "approve" ? "approved" : "rejected",
+        review_note: body.note?.trim() || null,
+        reviewed_by: "admin",
+        reviewed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", body.id);
+    if (updateRequest.error) return NextResponse.json({ error: updateRequest.error.message }, { status: 400 });
+
     return NextResponse.json({ ok: true });
   }
 

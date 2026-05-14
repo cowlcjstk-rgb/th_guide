@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -36,7 +36,7 @@ function Section({
         onClick={() => setOpen(!open)}
       >
         <span>{title}</span>
-        <span>{open ? "−" : "+"}</span>
+        <span>{open ? "-" : "+"}</span>
       </button>
       {open ? <div className="space-y-1">{children}</div> : null}
     </div>
@@ -77,7 +77,7 @@ export default function SideMenu() {
           <NavLink href="/map" label="지도 플래너" active={pathname.startsWith("/map")} />
           {nightlifeUrl ? (
             <a href={nightlifeUrl} target="_blank" rel="noreferrer" className="block rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100">
-              밤문화 플랫폼(외부)
+              밤문화 플랫폼(별도)
             </a>
           ) : null}
         </Section>
@@ -92,7 +92,8 @@ export default function SideMenu() {
         </Section>
 
         <Section title="등록" open={registerOpen} setOpen={setRegisterOpen}>
-          <NavLink href="/submit/place" label="장소 등록" active={pathname.startsWith("/submit/place")} />
+          <NavLink href="/submit/place" label="장소 등록" active={pathname.startsWith("/submit/place") && !pathname.startsWith("/submit/place-edit")} />
+          <NavLink href="/submit/place-edit" label="장소 수정 요청" active={pathname.startsWith("/submit/place-edit")} />
         </Section>
 
         <Section title="로그인" open={accountOpen} setOpen={setAccountOpen}>
@@ -124,6 +125,7 @@ export default function SideMenu() {
             <NavLink href="/admin" label="대시보드" active={pathname === "/admin"} />
             <NavLink href="/admin/places" label="장소 등록(관리자)" active={pathname === "/admin/places"} />
             <NavLink href="/admin/review" label="승인 관리" active={pathname === "/admin/review"} />
+            <NavLink href="/admin/review?tab=edits" label="수정 검토" active={pathname === "/admin/review"} />
             <NavLink href="/admin/community" label="커뮤니티 관리" active={pathname === "/admin/community"} />
             <NavLink href="/admin/members" label="회원 관리" active={pathname === "/admin/members"} />
           </Section>

@@ -52,6 +52,20 @@ export type PlaceSubmissionImage = {
   created_at: string;
 };
 
+export type PlaceEditRequest = {
+  id: string;
+  place_id: string;
+  requested_changes: Record<string, unknown>;
+  reason: string | null;
+  submitted_by: string | null;
+  status: "pending" | "approved" | "rejected";
+  review_note: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type CommunitySection =
   | "top-rated"
   | "latest-reviews"
