@@ -1,11 +1,12 @@
+import { Suspense } from "react";
 import MapPlanner from "@/components/map-planner";
 import { countBy, inferThaiCity } from "@/lib/geo";
 import { getPublishedPlaces } from "@/lib/supabase";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export default async function MapPage() {
-  const places = await getPublishedPlaces({ limit: 650 });
+  const places = await getPublishedPlaces({ limit: 500 });
   const geocodedCount = places.filter((p) => p.latitude != null && p.longitude != null).length;
   const citySummary = countBy(places, (p) => inferThaiCity(p)).slice(0, 6);
 
@@ -27,7 +28,9 @@ export default async function MapPage() {
         </div>
       </div>
 
-      <MapPlanner places={places} />
+      <Suspense fallback={<div className="panel p-4 text-sm text-slate-500">Loading map planner...</div>}>
+        <MapPlanner places={places} />
+      </Suspense>
     </section>
   );
 }

@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     const select = useCityColumn ? PLACE_SELECT : PLACE_SELECT.replace("city,", "");
     let query = supabase
       .from("places")
-      .select(select, { count: "exact" })
+      .select(select)
       .eq("is_published", true);
 
     if (useCityColumn && city !== "all") query = query.eq("city", city);
@@ -53,33 +53,38 @@ export async function GET(req: NextRequest) {
     return query
       .order("is_featured", { ascending: false })
       .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
+      .range(offset, offset + limit);
   };
 
-  let { data, error, count } = await runQuery(true, true);
+  let { data, error } = await runQuery(true, true);
   if (error?.message?.includes("search_document")) {
     const fallback = await runQuery(false, true);
     data = fallback.data;
     error = fallback.error;
-    count = fallback.count;
   }
   if (error?.message?.includes("column places.city does not exist")) {
     const fallback = await runQuery(false, false);
     data = fallback.data;
     error = fallback.error;
-    count = fallback.count;
   }
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  const total = count ?? (data?.length ?? 0);
+  const rows = data ?? [];
+  const hasMore = rows.length > limit;
+  const places = hasMore ? rows.slice(0, limit) : rows;
+
   return NextResponse.json({
-    places: data ?? [],
+    places,
     page: {
       limit,
       offset,
-      total,
-      has_more: offset + limit < total,
+      total: offset + places.length + (hasMore ? 1 : 0),
+      has_more: hasMore,
+    },
+  }, {
+    headers: {
+      "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120",
     },
   });
 }
