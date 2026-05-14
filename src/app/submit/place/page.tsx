@@ -10,7 +10,6 @@ export default function RegisterPlacePage() {
   const { lang } = useLanguage();
   const [name, setName] = useState("");
   const [city, setCity] = useState("Bangkok");
-  const [district, setDistrict] = useState("");
   const [category, setCategory] = useState("Cafe");
   const [address, setAddress] = useState("");
   const [googleMapUrl, setGoogleMapUrl] = useState("");
@@ -33,7 +32,6 @@ export default function RegisterPlacePage() {
           ok: "등록 요청이 접수되었습니다. 검수 후 공개됩니다.",
           fail: "등록 실패",
           name: "장소명 (한국어/영어)",
-          district: "지역 (District)",
           category: "카테고리",
           city: "도시 (City)",
           address: "주소",
@@ -53,7 +51,6 @@ export default function RegisterPlacePage() {
           ok: "Your request has been submitted.",
           fail: "Submission failed",
           name: "Place Name (KO/EN)",
-          district: "District",
           category: "Category",
           city: "City",
           address: "Address",
@@ -83,7 +80,6 @@ export default function RegisterPlacePage() {
       body: JSON.stringify({
         name,
         city,
-        district,
         category,
         address,
         description,
@@ -104,7 +100,6 @@ export default function RegisterPlacePage() {
       return;
     }
     setName("");
-    setDistrict("");
     setAddress("");
     setGoogleMapUrl("");
     setDescription("");
@@ -137,10 +132,6 @@ export default function RegisterPlacePage() {
               </option>
             ))}
           </select>
-        </div>
-        <div>
-          <p className="mb-1 text-xs text-slate-500">{t.district}</p>
-          <input className="input" value={district} onChange={(e) => setDistrict(e.target.value)} />
         </div>
         <div>
           <p className="mb-1 text-xs text-slate-500">{t.category}</p>

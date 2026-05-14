@@ -19,8 +19,8 @@ export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams;
   const q = (params.get("q") || "").trim();
   const city = (params.get("city") || "all").trim();
-  const district = (params.get("district") || "all").trim();
   const category = (params.get("category") || "all").trim();
+  const safeCity = city.replaceAll(",", " ").trim();
   const limit = toInt(params.get("limit"), 60, 1, 200);
   const offset = toInt(params.get("offset"), 0, 0, 50_000);
 
@@ -32,8 +32,12 @@ export async function GET(req: NextRequest) {
       .eq("is_published", true);
 
     if (useCityColumn && city !== "all") query = query.eq("city", city);
-    if (district !== "all") query = query.eq("district", district);
     if (category !== "all") query = query.eq("category", category);
+    if (city !== "all" && safeCity) {
+      query = query.or(
+        `city.eq.${safeCity},address.ilike.%${safeCity}%,district.ilike.%${safeCity}%`
+      );
+    }
 
     if (q) {
       if (useSearchDocument) {

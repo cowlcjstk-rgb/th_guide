@@ -14,22 +14,9 @@ import { uniqueValues } from "@/lib/utils";
 export default function MapPlanner({ places }: { places: Place[] }) {
   const searchParams = useSearchParams();
   const { lang } = useLanguage();
-  const [selectedIds, setSelectedIds] = useState<string[]>(() => {
-    if (typeof window === "undefined") return [];
-    const plan = new URL(window.location.href).searchParams.get("plan");
-    if (plan) return plan.split(",").filter(Boolean);
-    const saved = localStorage.getItem("trip_plan_latest");
-    if (!saved) return [];
-    try {
-      const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  });
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [keyword, setKeyword] = useState("");
   const [city, setCity] = useState("all");
-  const [district, setDistrict] = useState("all");
   const [category, setCategory] = useState("all");
   const [routeMode, setRouteMode] = useState<"driving" | "walking">("driving");
   const [routeSummary, setRouteSummary] = useState<{
@@ -48,7 +35,20 @@ export default function MapPlanner({ places }: { places: Place[] }) {
   const [routeAuthor, setRouteAuthor] = useState("");
   const [inspectedPlaceId, setInspectedPlaceId] = useState<string | null>(null);
 
-  const withCity = useMemo(() => places.map((place) => ({ ...place, _city: inferThaiCity(place) })), [places]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const plan = new URL(window.location.href).searchParams.get("plan");
+    if (plan) {
+      setSelectedIds(plan.split(",").filter(Boolean));
+      return;
+    }
+    const saved = localStorage.getItem("trip_plan_latest");
+    if (!saved) return;
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) setSelectedIds(parsed);
+    } catch {}
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("trip_plan_latest", JSON.stringify(selectedIds));
@@ -61,20 +61,10 @@ export default function MapPlanner({ places }: { places: Place[] }) {
     if (ids.length > 0) setSelectedIds(ids);
   }, [searchParams]);
 
-  const cityOptions = useMemo(() => uniqueValues(withCity.map((p) => p._city)), [withCity]);
-  const districtOptions = useMemo(() => {
-    const scoped = city === "all" ? withCity : withCity.filter((p) => p._city === city);
-    return uniqueValues(scoped.map((p) => p.district));
-  }, [withCity, city]);
-  const categoryOptions = useMemo(() => {
-    const scoped = withCity.filter((p) => {
-      const cityOk = city === "all" || p._city === city;
-      const districtOk = district === "all" || p.district === district;
-      return cityOk && districtOk;
-    });
-    return uniqueValues(scoped.map((p) => p.category));
-  }, [withCity, city, district]);
+  const withCity = useMemo(() => places.map((place) => ({ ...place, _city: inferThaiCity(place) })), [places]);
 
+  const cityOptions = useMemo(() => uniqueValues(withCity.map((p) => p._city)), [withCity]);
+  const categoryOptions = useMemo(() => uniqueValues(withCity.map((p) => p.category)), [withCity]);
   const categoryColorMap = useMemo(
     () => buildCategoryColorMap(categoryOptions.map((item) => item ?? "General")),
     [categoryOptions]
@@ -84,16 +74,15 @@ export default function MapPlanner({ places }: { places: Place[] }) {
     const q = keyword.trim().toLowerCase();
     return withCity.filter((p) => {
       const cityOk = city === "all" || p._city === city;
-      const districtOk = district === "all" || p.district === district;
       const categoryOk = category === "all" || p.category === category;
       const queryOk =
         !q ||
         localizePlaceName(p, lang).toLowerCase().includes(q) ||
         (p.category ?? "").toLowerCase().includes(q) ||
-        (p.district ?? "").toLowerCase().includes(q);
-      return cityOk && districtOk && categoryOk && queryOk;
+        p._city.toLowerCase().includes(q);
+      return cityOk && categoryOk && queryOk;
     });
-  }, [withCity, keyword, lang, city, district, category]);
+  }, [withCity, keyword, lang, city, category]);
 
   const selectedPlaces = useMemo(() => {
     const order = new Map(selectedIds.map((id, index) => [id, index]));
@@ -161,27 +150,6 @@ export default function MapPlanner({ places }: { places: Place[] }) {
             onRouteSummaryChange={setRouteSummary}
             onPlaceInspect={setInspectedPlaceId}
           />
-          {selectedPlaces.length > 0 ? (
-            <div className="panel p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {lang === "ko" ? "선택 장소 카드" : "Selected places"}
-              </p>
-              <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                {selectedPlaces.map((place, i) => (
-                  <div key={place.id} className="rounded-xl border border-slate-200 bg-white p-3">
-                    <p className="text-xs font-semibold text-slate-500">#{i + 1}</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-900">{localizePlaceName(place, lang)}</p>
-                    <p className="mt-1 text-xs text-slate-600">{place._city} · {place.category ?? "General"}</p>
-                    <div className="mt-2 flex gap-2">
-                      <button className="btn-secondary !px-2 !py-1 !text-xs" onClick={() => toggle(place.id)}>
-                        {lang === "ko" ? "제거" : "Remove"}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
         </div>
 
         <aside className="panel p-4">
@@ -214,13 +182,9 @@ export default function MapPlanner({ places }: { places: Place[] }) {
 
           <div className="mt-3 grid gap-2">
             <input className="input" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder={lang === "ko" ? "장소 검색" : "Search place"} />
-            <select className="input" value={city} onChange={(e) => { setCity(e.target.value); setDistrict("all"); }}>
+            <select className="input" value={city} onChange={(e) => setCity(e.target.value)}>
               <option value="all">{lang === "ko" ? "전체 도시" : "All cities"}</option>
               {cityOptions.map((item) => <option key={item} value={item}>{item}</option>)}
-            </select>
-            <select className="input" value={district} onChange={(e) => setDistrict(e.target.value)}>
-              <option value="all">{lang === "ko" ? "전체 지역" : "All districts"}</option>
-              {districtOptions.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
             <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
               <option value="all">{lang === "ko" ? "전체 카테고리" : "All categories"}</option>
@@ -228,28 +192,22 @@ export default function MapPlanner({ places }: { places: Place[] }) {
             </select>
           </div>
 
-          {inspectedPlace ? (
-            <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{lang === "ko" ? "지도 선택 장소" : "Selected from map"}</p>
-              <p className="mt-2 text-sm font-semibold text-slate-900">{localizePlaceName(inspectedPlace, lang)}</p>
-              <p className="mt-1 text-xs text-slate-600">{inspectedPlace._city} · {inspectedPlace.category ?? "General"}</p>
-              <button className="btn-secondary mt-2 !py-1.5 !text-xs" onClick={() => toggle(inspectedPlace.id)}>
-                {selectedIds.includes(inspectedPlace.id) ? (lang === "ko" ? "경로에서 제거" : "Remove from route") : (lang === "ko" ? "경로에 추가" : "Add to route")}
-              </button>
-            </div>
-          ) : null}
-
           {routeSummary ? (
             <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
               <p>
                 {routeSummary.mode === "walking" ? (lang === "ko" ? "도보" : "Walking") : (lang === "ko" ? "차량" : "Driving")} ·{" "}
                 {(routeSummary.distanceM / 1000).toFixed(1)}km · {Math.ceil(routeSummary.durationS / 60)}min
               </p>
-              {routeSummary.isFallback ? (
-                <p className="mt-1 text-[11px] text-slate-500">
-                  {lang === "ko" ? "경로 API 불가 시 직선 기반 추정치로 표시됩니다." : "Fallback estimate (straight-line) shown."}
-                </p>
-              ) : null}
+            </div>
+          ) : null}
+
+          {inspectedPlace ? (
+            <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+              <p className="text-sm font-semibold text-slate-900">{localizePlaceName(inspectedPlace, lang)}</p>
+              <p className="mt-1 text-xs text-slate-600">{inspectedPlace._city} · {inspectedPlace.category ?? "General"}</p>
+              <button className="btn-secondary mt-2 !py-1.5 !text-xs" onClick={() => toggle(inspectedPlace.id)}>
+                {selectedIds.includes(inspectedPlace.id) ? (lang === "ko" ? "경로에서 제거" : "Remove from route") : (lang === "ko" ? "경로에 추가" : "Add to route")}
+              </button>
             </div>
           ) : null}
 
@@ -260,7 +218,7 @@ export default function MapPlanner({ places }: { places: Place[] }) {
             </div>
           </div>
 
-          <div className="mt-3 max-h-[38vh] space-y-2 overflow-auto pr-1">
+          <div className="mt-3 max-h-[35vh] space-y-2 overflow-auto pr-1">
             {filtered.map((place) => {
               const idx = selectedIds.indexOf(place.id);
               return (
@@ -271,9 +229,8 @@ export default function MapPlanner({ places }: { places: Place[] }) {
                 >
                   <p className="text-sm font-semibold">{localizePlaceName(place, lang)}</p>
                   <p className={`mt-1 text-xs ${idx >= 0 ? "text-slate-200" : "text-slate-500"}`}>
-                    {place._city} · {place.district ?? "Unknown"} · {place.category ?? "General"}
+                    {place._city} · {place.category ?? "General"}
                   </p>
-                  {idx >= 0 ? <p className="mt-1 text-xs">#{idx + 1}</p> : null}
                 </button>
               );
             })}

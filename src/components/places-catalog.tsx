@@ -39,7 +39,6 @@ export default function PlacesCatalog({ places: initialPlaces, initialCity, init
 
   const [keyword, setKeyword] = useState(() => searchParams.get("q") ?? "");
   const [city, setCity] = useState(() => initialCity ?? searchParams.get("city") ?? "all");
-  const [district, setDistrict] = useState(() => searchParams.get("district") ?? "all");
   const [category, setCategory] = useState(() => initialCategory ?? searchParams.get("category") ?? "all");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [inspectedPlaceId, setInspectedPlaceId] = useState<string | null>(null);
@@ -62,20 +61,12 @@ export default function PlacesCatalog({ places: initialPlaces, initialCity, init
     });
   }, [initialPlaces, rows]);
 
-  const withCityOptions = useMemo(() => allKnownPlaces.map((p) => ({ ...p, _city: inferThaiCity(p) })), [allKnownPlaces]);
+  const withCityOptions = useMemo(
+    () => allKnownPlaces.map((p) => ({ ...p, _city: inferThaiCity(p) })),
+    [allKnownPlaces]
+  );
   const cities = useMemo(() => uniqueValues(withCityOptions.map((p) => p._city)), [withCityOptions]);
-  const districts = useMemo(() => {
-    const scoped = city === "all" ? withCityOptions : withCityOptions.filter((p) => p._city === city);
-    return uniqueValues(scoped.map((p) => p.district));
-  }, [withCityOptions, city]);
-  const categories = useMemo(() => {
-    const scoped = withCityOptions.filter((p) => {
-      const cityOk = city === "all" || p._city === city;
-      const districtOk = district === "all" || p.district === district;
-      return cityOk && districtOk;
-    });
-    return uniqueValues(scoped.map((p) => p.category));
-  }, [withCityOptions, city, district]);
+  const categories = useMemo(() => uniqueValues(withCityOptions.map((p) => p.category)), [withCityOptions]);
 
   useEffect(() => {
     if (onlyInViewport) return;
@@ -84,8 +75,6 @@ export default function PlacesCatalog({ places: initialPlaces, initialCity, init
       try {
         const params = new URLSearchParams({
           q: keyword,
-          city,
-          district,
           category,
           limit: String(PAGE_SIZE),
           offset: "0",
@@ -100,7 +89,7 @@ export default function PlacesCatalog({ places: initialPlaces, initialCity, init
       }
     }, 260);
     return () => clearTimeout(timer);
-  }, [keyword, city, district, category, onlyInViewport]);
+  }, [keyword, category, onlyInViewport]);
 
   useEffect(() => {
     if (!onlyInViewport || !viewportBounds) {
@@ -116,8 +105,6 @@ export default function PlacesCatalog({ places: initialPlaces, initialCity, init
           minLat: String(viewportBounds.minLat),
           maxLng: String(viewportBounds.maxLng),
           maxLat: String(viewportBounds.maxLat),
-          city,
-          district,
           category,
           q: keyword,
           limit: "2200",
@@ -134,12 +121,18 @@ export default function PlacesCatalog({ places: initialPlaces, initialCity, init
       }
     }, 260);
     return () => clearTimeout(timer);
-  }, [onlyInViewport, viewportBounds, city, district, category, keyword]);
+  }, [onlyInViewport, viewportBounds, category, keyword]);
 
   const filtered = useMemo(() => {
     const source = onlyInViewport ? boundsPlaces ?? [] : rows;
-    return source.map((item) => ({ ...item, _city: inferThaiCity(item) }));
-  }, [onlyInViewport, boundsPlaces, rows]);
+    return source
+      .map((item) => ({ ...item, _city: inferThaiCity(item) }))
+      .filter((item) => {
+        const cityOk = city === "all" || item._city === city;
+        const categoryOk = category === "all" || item.category === category;
+        return cityOk && categoryOk;
+      });
+  }, [onlyInViewport, boundsPlaces, rows, city, category]);
 
   const selectedPlaces = useMemo(() => {
     const rank = new Map(selectedIds.map((id, index) => [id, index]));
@@ -168,8 +161,6 @@ export default function PlacesCatalog({ places: initialPlaces, initialCity, init
     try {
       const params = new URLSearchParams({
         q: keyword,
-        city,
-        district,
         category,
         limit: String(PAGE_SIZE),
         offset: String(rows.length),
@@ -191,38 +182,75 @@ export default function PlacesCatalog({ places: initialPlaces, initialCity, init
   return (
     <section className="w-full">
       <div className="panel p-5">
-        <div className="grid gap-3 md:grid-cols-4">
-          <input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder={lang === "ko" ? "장소명, 태그 검색" : "Search by name or tag"} className="input" />
-          <select value={city} onChange={(e) => { setCity(e.target.value); setDistrict("all"); }} className="input">
+        <div className="grid gap-3 md:grid-cols-3">
+          <input
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            placeholder={lang === "ko" ? "장소명, 태그 검색" : "Search by name or tag"}
+            className="input"
+          />
+          <select value={city} onChange={(e) => setCity(e.target.value)} className="input">
             <option value="all">{lang === "ko" ? "전체 도시" : "All cities"}</option>
-            {cities.map((item) => <option key={item} value={item}>{item}</option>)}
-          </select>
-          <select value={district} onChange={(e) => setDistrict(e.target.value)} className="input">
-            <option value="all">{lang === "ko" ? "전체 지역" : "All districts"}</option>
-            {districts.map((item) => <option key={item} value={item}>{item}</option>)}
+            {cities.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
           </select>
           <select value={category} onChange={(e) => setCategory(e.target.value)} className="input">
             <option value="all">{lang === "ko" ? "전체 카테고리" : "All categories"}</option>
-            {categories.map((item) => <option key={item} value={item}>{item}</option>)}
+            {categories.map((item) => (
+              <option key={item} value={item}>
+                {item}
+              </option>
+            ))}
           </select>
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button className={`rounded-lg border px-3 py-1.5 text-xs ${viewMode === "split" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 bg-white text-slate-700"}`} onClick={() => setViewMode("split")}>{lang === "ko" ? "분할 보기" : "Split"}</button>
-          <button className={`rounded-lg border px-3 py-1.5 text-xs ${viewMode === "map" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 bg-white text-slate-700"}`} onClick={() => setViewMode("map")}>{lang === "ko" ? "지도만" : "Map only"}</button>
-          <button className={`rounded-lg border px-3 py-1.5 text-xs ${viewMode === "list" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 bg-white text-slate-700"}`} onClick={() => setViewMode("list")}>{lang === "ko" ? "리스트만" : "List only"}</button>
-          <button className={`rounded-lg border px-3 py-1.5 text-xs ${onlyInViewport ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 bg-white text-slate-700"}`} onClick={() => setOnlyInViewport((v) => !v)}>
+          <button
+            className={`rounded-lg border px-3 py-1.5 text-xs ${viewMode === "split" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 bg-white text-slate-700"}`}
+            onClick={() => setViewMode("split")}
+          >
+            {lang === "ko" ? "분할 보기" : "Split"}
+          </button>
+          <button
+            className={`rounded-lg border px-3 py-1.5 text-xs ${viewMode === "map" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 bg-white text-slate-700"}`}
+            onClick={() => setViewMode("map")}
+          >
+            {lang === "ko" ? "지도만" : "Map only"}
+          </button>
+          <button
+            className={`rounded-lg border px-3 py-1.5 text-xs ${viewMode === "list" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 bg-white text-slate-700"}`}
+            onClick={() => setViewMode("list")}
+          >
+            {lang === "ko" ? "리스트만" : "List only"}
+          </button>
+          <button
+            className={`rounded-lg border px-3 py-1.5 text-xs ${onlyInViewport ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 bg-white text-slate-700"}`}
+            onClick={() => setOnlyInViewport((v) => !v)}
+          >
             {lang === "ko" ? "현재 지도 영역만" : "In current map bounds"}
           </button>
           {loading ? <span className="text-xs text-slate-500">{lang === "ko" ? "불러오는 중..." : "Loading..."}</span> : null}
-          {!onlyInViewport ? <span className="text-xs text-slate-500">{lang === "ko" ? `서버 검색: ${rows.length}/${total}` : `Server search: ${rows.length}/${total}`}</span> : null}
+          {!onlyInViewport ? (
+            <span className="text-xs text-slate-500">
+              {lang === "ko" ? `서버 검색: ${rows.length}/${total}` : `Server search: ${rows.length}/${total}`}
+            </span>
+          ) : null}
         </div>
       </div>
 
       <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_auto]">
-        <p className="text-sm text-slate-500">{lang === "ko" ? `${filtered.length}개 장소 표시 중` : `Showing ${filtered.length} places`}</p>
+        <p className="text-sm text-slate-500">
+          {lang === "ko" ? `${filtered.length}개 장소 표시 중` : `Showing ${filtered.length} places`}
+        </p>
         <div className="flex flex-wrap gap-2">
-          {cityStats.map(([name, count]) => <span key={name} className="chip">{name}: {count}</span>)}
+          {cityStats.map(([name, count]) => (
+            <span key={name} className="chip">
+              {name}: {count}
+            </span>
+          ))}
         </div>
       </div>
 
@@ -241,7 +269,9 @@ export default function PlacesCatalog({ places: initialPlaces, initialCity, init
             {selectedPlaces.length > 0 ? (
               <div className="panel p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{lang === "ko" ? "선택한 장소 카드" : "Selected cards"}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    {lang === "ko" ? "선택한 장소 카드" : "Selected cards"}
+                  </p>
                   <Link href={`/map?plan=${selectedIds.join(",")}`} className="btn-secondary !px-2 !py-1 !text-xs">
                     {lang === "ko" ? "지도 플래너로 보내기" : "Send to planner"}
                   </Link>
@@ -267,20 +297,32 @@ export default function PlacesCatalog({ places: initialPlaces, initialCity, init
           <div className="space-y-4">
             {showMap ? (
               <aside className="panel p-4">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{lang === "ko" ? "지도에서 선택한 장소" : "Place from map"}</h3>
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                  {lang === "ko" ? "지도에서 선택한 장소" : "Place from map"}
+                </h3>
                 {inspectedPlace ? (
                   <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
                     <p className="text-sm font-semibold text-slate-900">{localizePlaceName(inspectedPlace, lang)}</p>
-                    <p className="mt-1 text-xs text-slate-600">{inspectedPlace._city} · {inspectedPlace.district ?? "Unknown"} · {inspectedPlace.category ?? "General"}</p>
+                    <p className="mt-1 text-xs text-slate-600">
+                      {inspectedPlace._city} · {inspectedPlace.category ?? "General"}
+                    </p>
                     <p className="mt-1 text-xs text-slate-500">{inspectedPlace.address ?? "-"}</p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       <button className="btn-secondary !px-2 !py-1 !text-xs" onClick={() => toggleSelected(inspectedPlace.id)}>
-                        {selectedIds.includes(inspectedPlace.id) ? (lang === "ko" ? "선택 해제" : "Unselect") : (lang === "ko" ? "카드에 추가" : "Add card")}
+                        {selectedIds.includes(inspectedPlace.id)
+                          ? lang === "ko"
+                            ? "선택 해제"
+                            : "Unselect"
+                          : lang === "ko"
+                            ? "카드에 추가"
+                            : "Add card"}
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <p className="mt-3 text-xs text-slate-500">{lang === "ko" ? "지도의 핀을 클릭하면 장소 정보가 표시됩니다." : "Click a pin on the map."}</p>
+                  <p className="mt-3 text-xs text-slate-500">
+                    {lang === "ko" ? "지도의 핀을 클릭하면 장소 정보가 표시됩니다." : "Click a pin on the map."}
+                  </p>
                 )}
               </aside>
             ) : null}
@@ -289,15 +331,24 @@ export default function PlacesCatalog({ places: initialPlaces, initialCity, init
               {filtered.map((place) => (
                 <div key={place.id} className="space-y-2">
                   <PlaceCard place={place} />
-                  <button className={`w-full rounded-lg border px-3 py-2 text-xs ${selectedIds.includes(place.id) ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 bg-white text-slate-700"}`} onClick={() => toggleSelected(place.id)}>
-                    {selectedIds.includes(place.id) ? (lang === "ko" ? "선택 해제" : "Unselect") : (lang === "ko" ? "선택 카드에 추가" : "Add to selected cards")}
+                  <button
+                    className={`w-full rounded-lg border px-3 py-2 text-xs ${selectedIds.includes(place.id) ? "border-slate-900 bg-slate-900 text-white" : "border-slate-300 bg-white text-slate-700"}`}
+                    onClick={() => toggleSelected(place.id)}
+                  >
+                    {selectedIds.includes(place.id)
+                      ? lang === "ko"
+                        ? "선택 해제"
+                        : "Unselect"
+                      : lang === "ko"
+                        ? "선택 카드에 추가"
+                        : "Add to selected cards"}
                   </button>
                 </div>
               ))}
             </div>
             {!onlyInViewport && rows.length < total ? (
               <button className="btn-secondary w-full" onClick={loadMore} disabled={loadingMore}>
-                {loadingMore ? (lang === "ko" ? "불러오는 중..." : "Loading...") : (lang === "ko" ? "더 불러오기" : "Load more")}
+                {loadingMore ? (lang === "ko" ? "불러오는 중..." : "Loading...") : lang === "ko" ? "더 불러오기" : "Load more"}
               </button>
             ) : null}
           </div>
