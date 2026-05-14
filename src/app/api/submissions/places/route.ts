@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auditLog } from "@/lib/audit-log";
 import { trackEventServer } from "@/lib/analytics";
+import { getMemberSession } from "@/lib/auth-request";
 import { applyRateLimit } from "@/lib/rate-limit";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 import { slugify } from "@/lib/utils";
@@ -11,6 +12,7 @@ export async function POST(req: NextRequest) {
 
   const supabase = getSupabaseAdminClient();
   if (!supabase) return NextResponse.json({ error: "Server env missing" }, { status: 500 });
+  const member = getMemberSession(req);
 
   const body = (await req.json()) as {
     name?: string;
@@ -33,28 +35,37 @@ export async function POST(req: NextRequest) {
   const baseSlug = slugify(body.name);
   const uniqueSlug = `${baseSlug}-${Date.now().toString().slice(-6)}`;
 
+  const submittedBy = body.submitted_by?.trim() || member?.name || null;
+  const insertPayload = {
+    name: body.name.trim(),
+    slug: uniqueSlug,
+    city: body.city?.trim() || null,
+    district: body.district?.trim() || null,
+    category: body.category?.trim() || null,
+    address: body.address?.trim() || null,
+    description: body.description?.trim() || null,
+    google_map_url: body.google_map_url?.trim() || null,
+    tags: Array.isArray(body.tags) ? body.tags.map((tag) => tag.trim()).filter(Boolean) : [],
+    tips: body.tips?.trim() || null,
+    is_featured: false,
+    is_published: false,
+    submission_status: "pending",
+    submitted_by: submittedBy,
+    submitted_by_member_id: member?.id ?? null,
+  };
+
   const { data, error } = await supabase
     .from("places")
-    .insert({
-      name: body.name.trim(),
-      slug: uniqueSlug,
-      city: body.city?.trim() || null,
-      district: body.district?.trim() || null,
-      category: body.category?.trim() || null,
-      address: body.address?.trim() || null,
-      description: body.description?.trim() || null,
-      google_map_url: body.google_map_url?.trim() || null,
-      tags: Array.isArray(body.tags) ? body.tags.map((tag) => tag.trim()).filter(Boolean) : [],
-      tips: body.tips?.trim() || null,
-      is_featured: false,
-      is_published: false,
-      submission_status: "pending",
-      submitted_by: body.submitted_by?.trim() || null,
-    })
+    .insert(insertPayload)
     .select("id, name")
     .single();
 
-  if (error && (error.message.includes("submission_status") || error.message.includes("city"))) {
+  if (
+    error &&
+    (error.message.includes("submission_status") ||
+      error.message.includes("city") ||
+      error.message.includes("submitted_by_member_id"))
+  ) {
     const fallback = await supabase
       .from("places")
       .insert({
@@ -69,6 +80,8 @@ export async function POST(req: NextRequest) {
         tips: body.tips?.trim() || null,
         is_featured: false,
         is_published: false,
+        submission_status: "pending",
+        submitted_by: submittedBy,
       })
       .select("id, name")
       .single();

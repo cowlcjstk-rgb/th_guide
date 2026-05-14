@@ -109,6 +109,8 @@ export default function SideMenu() {
             <>
               <NavLink href="/me" label="회원 정보 확인" active={pathname === "/me"} />
               <NavLink href="/me/saved" label="내 저장 장소" active={pathname.startsWith("/me/saved")} />
+              <NavLink href="/me/submitted-places" label="내 등록 장소" active={pathname.startsWith("/me/submitted-places")} />
+              <NavLink href="/me/submitted-routes" label="내 등록 동선" active={pathname.startsWith("/me/submitted-routes")} />
               <button
                 className="block w-full rounded-lg px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
                 onClick={async () => {

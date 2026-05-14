@@ -14,6 +14,9 @@ import { uniqueValues } from "@/lib/utils";
 export default function MapPlanner({ places }: { places: Place[] }) {
   const searchParams = useSearchParams();
   const { lang } = useLanguage();
+  const [loadedPlanId, setLoadedPlanId] = useState("");
+  const [loadedPlanTitle, setLoadedPlanTitle] = useState("");
+  const [loadedPlanDescription, setLoadedPlanDescription] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [keyword, setKeyword] = useState("");
   const [city, setCity] = useState("all");
@@ -59,7 +62,31 @@ export default function MapPlanner({ places }: { places: Place[] }) {
     if (!plan) return;
     const ids = plan.split(",").filter(Boolean);
     if (ids.length > 0) setSelectedIds(ids);
+    setLoadedPlanId(searchParams.get("planId") ?? "");
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!loadedPlanId) {
+      setLoadedPlanTitle("");
+      setLoadedPlanDescription("");
+      return;
+    }
+    (async () => {
+      const res = await fetch(`/api/trip-plans/${loadedPlanId}`, { cache: "no-store" });
+      const data = await res.json();
+      if (!res.ok || !data?.plan) {
+        setLoadedPlanTitle("");
+        setLoadedPlanDescription("");
+        return;
+      }
+      const nextTitle = String(data.plan.title ?? "");
+      const nextDescription = String(data.plan.description ?? "");
+      setLoadedPlanTitle(nextTitle);
+      setLoadedPlanDescription(nextDescription);
+      setRouteTitle((prev) => prev || nextTitle);
+      setRouteDescription((prev) => prev || nextDescription);
+    })();
+  }, [loadedPlanId]);
 
   const withCity = useMemo(() => places.map((place) => ({ ...place, _city: inferThaiCity(place) })), [places]);
 
@@ -156,6 +183,13 @@ export default function MapPlanner({ places }: { places: Place[] }) {
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
             {lang === "ko" ? "이동 경로 만들기" : "Build route"}
           </h2>
+          {loadedPlanId ? (
+            <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-700">
+              <p className="font-semibold">{lang === "ko" ? "공유 동선 불러옴" : "Shared route loaded"}</p>
+              {loadedPlanTitle ? <p className="mt-1 text-slate-600">{loadedPlanTitle}</p> : null}
+              {loadedPlanDescription ? <p className="mt-1 line-clamp-2 text-slate-500">{loadedPlanDescription}</p> : null}
+            </div>
+          ) : null}
 
           <div className="mt-2 grid grid-cols-2 gap-2">
             <button
@@ -246,6 +280,18 @@ export default function MapPlanner({ places }: { places: Place[] }) {
                 <button className="btn-primary w-full" onClick={() => setRegisterOpen(true)}>
                   {lang === "ko" ? "동선 등록" : "Register route"}
                 </button>
+                {loadedPlanId ? (
+                  <button
+                    className="btn-secondary w-full"
+                    onClick={() => {
+                      setRouteTitle((prev) => prev || loadedPlanTitle || "");
+                      setRouteDescription((prev) => prev || loadedPlanDescription || "");
+                      setRegisterOpen(true);
+                    }}
+                  >
+                    {lang === "ko" ? "불러온 동선 기반으로 저장" : "Save as new from shared route"}
+                  </button>
+                ) : null}
                 <button className="btn-secondary w-full" onClick={copyShareLink}>
                   {copied ? (lang === "ko" ? "복사 완료" : "Copied") : (lang === "ko" ? "공유 링크 복사" : "Copy share link")}
                 </button>

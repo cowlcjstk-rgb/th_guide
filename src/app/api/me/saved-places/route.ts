@@ -1,18 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { parseAuthToken } from "@/lib/auth";
+import { getMemberSession } from "@/lib/auth-request";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
-const AUTH_COOKIE = "tg_auth";
-
-function getMemberFromRequest(req: NextRequest) {
-  const token = req.cookies.get(AUTH_COOKIE)?.value;
-  const user = parseAuthToken(token);
-  if (!user || user.role !== "member") return null;
-  return user;
-}
-
 export async function GET(req: NextRequest) {
-  const member = getMemberFromRequest(req);
+  const member = getMemberSession(req);
   if (!member) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const supabase = getSupabaseAdminClient();
@@ -61,7 +52,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const member = getMemberFromRequest(req);
+  const member = getMemberSession(req);
   if (!member) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const supabase = getSupabaseAdminClient();
@@ -86,7 +77,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const member = getMemberFromRequest(req);
+  const member = getMemberSession(req);
   if (!member) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const supabase = getSupabaseAdminClient();

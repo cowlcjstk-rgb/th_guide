@@ -12,7 +12,8 @@
     "import:places:xlsx": "node scripts/import-places-from-xlsx.mjs",
     "backfill:coords": "node scripts/backfill-coordinates.mjs",
     "verify:thai-google": "node scripts/verify-thailand-and-map-links.mjs",
-    "refresh:google-by-name": "node scripts/refresh-places-by-name-google.mjs"
+    "refresh:google-by-name": "node scripts/refresh-places-by-name-google.mjs",
+    "seed:community": "node scripts/seed-community-data.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",

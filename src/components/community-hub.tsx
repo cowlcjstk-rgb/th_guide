@@ -289,17 +289,36 @@ export default function CommunityHub({
       <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{t.routeShares}</h2>
       {renderManagedContent("route-shares")}
       <div className="mt-3 space-y-2">
-        {planList.slice(0, 24).map((plan) => (
-          <Link
-            key={plan.id}
-            href={`/map?plan=${encodeURIComponent((plan.place_ids || []).join(","))}&planId=${plan.id}`}
-            className="block rounded-xl border border-slate-200 bg-white p-3"
-          >
-            <p className="text-sm font-semibold text-slate-800">{plan.title || `Plan ${plan.id.slice(0, 6)}`}</p>
-            <p className="mt-1 text-xs text-slate-500">{(plan.place_ids || []).length} stops · {new Date(plan.created_at).toLocaleDateString()}</p>
-            {plan.description ? <p className="mt-2 text-sm text-slate-700">{plan.description}</p> : null}
-          </Link>
-        ))}
+        {planList.slice(0, 24).map((plan) => {
+          const placeNames = (plan.place_ids || [])
+            .map((id) => placeMap.get(id)?.name)
+            .filter((name): name is string => Boolean(name));
+          return (
+            <Link
+              key={plan.id}
+              href={`/map?plan=${encodeURIComponent((plan.place_ids || []).join(","))}&planId=${plan.id}`}
+              className="block rounded-xl border border-slate-200 bg-white p-3"
+            >
+              <p className="text-sm font-semibold text-slate-800">{plan.title || `Plan ${plan.id.slice(0, 6)}`}</p>
+              <p className="mt-1 text-xs text-slate-500">{(plan.place_ids || []).length} stops · {new Date(plan.created_at).toLocaleDateString()}</p>
+              {plan.description ? <p className="mt-2 text-sm text-slate-700">{plan.description}</p> : null}
+              {placeNames.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {placeNames.slice(0, 8).map((name) => (
+                    <span key={`${plan.id}-${name}`} className="rounded-full border border-slate-200 px-2 py-0.5 text-[11px] text-slate-600">
+                      {name}
+                    </span>
+                  ))}
+                  {placeNames.length > 8 ? (
+                    <span className="rounded-full border border-slate-200 px-2 py-0.5 text-[11px] text-slate-500">
+                      +{placeNames.length - 8}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
+            </Link>
+          );
+        })}
       </div>
       {planList.length === 0 ? <p className="mt-3 text-sm text-slate-500">{t.empty}</p> : null}
     </section>

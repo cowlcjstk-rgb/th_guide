@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auditLog } from "@/lib/audit-log";
 import { trackEventServer } from "@/lib/analytics";
+import { getMemberSession } from "@/lib/auth-request";
 import { applyRateLimit } from "@/lib/rate-limit";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
 
@@ -10,6 +11,7 @@ export async function POST(req: NextRequest) {
 
   const supabase = getSupabaseAdminClient();
   if (!supabase) return NextResponse.json({ error: "Server env missing" }, { status: 500 });
+  const member = getMemberSession(req);
 
   const body = (await req.json()) as {
     title?: string;
@@ -23,24 +25,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "at least 2 places are required" }, { status: 400 });
   }
 
+  const submittedBy = body.submitted_by?.trim() || member?.name || null;
+  const insertPayload = {
+    title: body.title?.trim() || null,
+    description: body.description?.trim() || null,
+    extra_info: body.extra_info?.trim() || null,
+    submitted_by: submittedBy,
+    submitted_by_member_id: member?.id ?? null,
+    status: "pending",
+    place_ids: ids,
+  };
+
   const { data, error } = await supabase
     .from("trip_plans")
-    .insert({
-      title: body.title?.trim() || null,
-      description: body.description?.trim() || null,
-      extra_info: body.extra_info?.trim() || null,
-      submitted_by: body.submitted_by?.trim() || null,
-      status: "pending",
-      place_ids: ids,
-    })
+    .insert(insertPayload)
     .select("*")
     .single();
 
-  if (error && (error.message.includes("description") || error.message.includes("status"))) {
+  if (
+    error &&
+    (error.message.includes("description") ||
+      error.message.includes("status") ||
+      error.message.includes("submitted_by_member_id"))
+  ) {
     const fallback = await supabase
       .from("trip_plans")
       .insert({
         title: body.title?.trim() || null,
+        submitted_by: submittedBy,
         place_ids: ids,
       })
       .select("*")
