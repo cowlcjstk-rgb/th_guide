@@ -297,6 +297,7 @@ export default function PlacesCatalog({ places: initialPlaces, initialCity, init
               places={filtered}
               allPlaces={allKnownPlaces}
               selectedIds={selectedIds}
+              focusedPlaceId={inspectedPlaceId}
               onPlaceInspect={setInspectedPlaceId}
               onViewportBoundsChange={setViewportBounds}
               serverClusters={boundsClusters}
@@ -370,7 +371,14 @@ export default function PlacesCatalog({ places: initialPlaces, initialCity, init
             <div className="grid gap-4 md:grid-cols-2">
               {filtered.map((place) => (
                 <div key={place.id} className="space-y-2">
-                  <PlaceCard place={place} />
+                  <PlaceCard
+                    place={place}
+                    disableLink
+                    onClick={() => {
+                      setInspectedPlaceId(place.id);
+                      if (viewMode === "list") setViewMode("split");
+                    }}
+                  />
                   <button
                     className={`w-full rounded-lg border px-3 py-2 text-xs ${
                       selectedIds.includes(place.id)

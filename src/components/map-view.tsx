@@ -9,6 +9,7 @@ type Props = {
   places: Place[];
   allPlaces?: Place[];
   selectedIds: string[];
+  focusedPlaceId?: string | null;
   routeMode?: "driving" | "walking";
   onRouteSummaryChange?: (summary: {
     mode: "driving" | "walking";
@@ -61,6 +62,7 @@ export default function MapView({
   places,
   allPlaces,
   selectedIds,
+  focusedPlaceId = null,
   routeMode = "driving",
   onRouteSummaryChange,
   onPlaceInspect,
@@ -73,6 +75,8 @@ export default function MapView({
   const selectedMarkersRef = useRef<maplibregl.Marker[]>([]);
   const lastRouteKeyRef = useRef("");
   const lastClusterModeRef = useRef<boolean | null>(null);
+  const didInitialFitRef = useRef(false);
+  const userInteractedRef = useRef(false);
   const onRouteSummaryChangeRef = useRef(onRouteSummaryChange);
   const onPlaceInspectRef = useRef(onPlaceInspect);
   const onViewportBoundsChangeRef = useRef(onViewportBoundsChange);
@@ -144,10 +148,19 @@ export default function MapView({
       style: "https://tiles.openfreemap.org/styles/bright",
       center: [100.5018, 13.7563],
       zoom: 6.3,
+      scrollZoom: true,
     });
+    map.scrollZoom.enable();
+    map.scrollZoom.setWheelZoomRate(1 / 450);
 
     map.addControl(new maplibregl.NavigationControl(), "top-right");
     map.addControl(new maplibregl.GeolocateControl({ trackUserLocation: true }), "top-right");
+
+    const markInteracted = () => {
+      userInteractedRef.current = true;
+    };
+    map.on("zoomstart", markInteracted);
+    map.on("dragstart", markInteracted);
 
     map.on("moveend", () => {
       const b = map.getBounds();
@@ -280,12 +293,29 @@ export default function MapView({
       }
     }
 
-    if (geojson.features.length > 0 && !lastRouteKeyRef.current) {
+    if (geojson.features.length > 0 && !didInitialFitRef.current && !userInteractedRef.current && !lastRouteKeyRef.current) {
       const bounds = new maplibregl.LngLatBounds();
       geojson.features.forEach((feature) => bounds.extend(feature.geometry.coordinates as [number, number]));
       map.fitBounds(bounds, { padding: 40, duration: 350, maxZoom: 12 });
+      didInitialFitRef.current = true;
     }
   }, [geojson, places, serverClusters, useServerClusters]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !focusedPlaceId) return;
+    const sourcePlaces = allPlaces ?? places;
+    const target = sourcePlaces.find((place) => place.id === focusedPlaceId);
+    if (!target) return;
+    const point = getPoint(target);
+    if (!point) return;
+
+    map.easeTo({
+      center: [point.lng, point.lat],
+      zoom: Math.max(map.getZoom(), 12),
+      duration: 350,
+    });
+  }, [focusedPlaceId, allPlaces, places]);
 
   useEffect(() => {
     const map = mapRef.current;

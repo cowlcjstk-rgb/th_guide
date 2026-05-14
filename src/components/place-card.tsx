@@ -8,9 +8,11 @@ import { Place } from "@/lib/types";
 
 type Props = {
   place: Place;
+  disableLink?: boolean;
+  onClick?: () => void;
 };
 
-export default function PlaceCard({ place }: Props) {
+export default function PlaceCard({ place, disableLink = false, onClick }: Props) {
   const { lang } = useLanguage();
   const title = localizePlaceName(place, lang);
   const city = inferThaiCity(place);
@@ -23,8 +25,8 @@ export default function PlaceCard({ place }: Props) {
     ? `${lang === "ko" ? "출처" : "Source"} ${place.submitted_by}`
     : `${lang === "ko" ? "출처" : "Source"} ${lang === "ko" ? "운영팀" : "Ops Team"}`;
 
-  return (
-    <Link href={`/place/${place.slug}`} className="card block p-5">
+  const content = (
+    <>
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-base font-semibold tracking-tight text-slate-900">{title}</h3>
         {place.is_featured ? <span className="chip">Featured</span> : null}
@@ -48,6 +50,24 @@ export default function PlaceCard({ place }: Props) {
           ))}
         </div>
       ) : null}
+    </>
+  );
+
+  if (disableLink) {
+    return (
+      <button
+        type="button"
+        className="card block w-full p-5 text-left"
+        onClick={onClick}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <Link href={`/place/${place.slug}`} className="card block p-5">
+      {content}
     </Link>
   );
 }
