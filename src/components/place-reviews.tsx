@@ -1,11 +1,14 @@
-"use client";
+﻿"use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/components/auth-provider";
 import { useLanguage } from "@/components/language-provider";
 import { PlaceReview } from "@/lib/types";
 
 export default function PlaceReviews({ placeId }: { placeId: string }) {
   const { lang } = useLanguage();
+  const { user } = useAuth();
   const [reviews, setReviews] = useState<PlaceReview[]>([]);
   const [nickname, setNickname] = useState("");
   const [rating, setRating] = useState(5);
@@ -53,12 +56,14 @@ export default function PlaceReviews({ placeId }: { placeId: string }) {
   const t =
     lang === "ko"
       ? {
-          title: "커뮤니티 별점",
+          title: "커뮤니티 평점",
           empty: "아직 리뷰가 없습니다",
           nick: "닉네임",
-          comment: "짧은 리뷰를 남겨 주세요",
+          comment: "짧은 리뷰를 남겨주세요",
           submit: "리뷰 등록",
           saving: "저장 중...",
+          loginPrompt: "로그인하면 닉네임 관리와 활동 기록을 더 쉽게 할 수 있어요.",
+          loginCta: "로그인/회원가입",
         }
       : {
           title: "Community rating",
@@ -67,6 +72,8 @@ export default function PlaceReviews({ placeId }: { placeId: string }) {
           comment: "Leave a short comment",
           submit: "Submit review",
           saving: "Saving...",
+          loginPrompt: "Login to manage your profile and contribution history.",
+          loginCta: "Login / Sign up",
         };
 
   return (
@@ -78,13 +85,17 @@ export default function PlaceReviews({ placeId }: { placeId: string }) {
         </p>
       </div>
 
+      {!user ? (
+        <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+          <p>{t.loginPrompt}</p>
+          <Link href="/auth/login" className="mt-2 inline-block text-slate-900 underline">
+            {t.loginCta}
+          </Link>
+        </div>
+      ) : null}
+
       <form onSubmit={submit} className="mt-4 grid gap-2">
-        <input
-          className="input"
-          placeholder={t.nick}
-          value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
-        />
+        <input className="input" placeholder={t.nick} value={nickname} onChange={(e) => setNickname(e.target.value)} />
         <select className="input" value={rating} onChange={(e) => setRating(Number(e.target.value))}>
           {[5, 4, 3, 2, 1].map((n) => (
             <option key={n} value={n}>
@@ -92,12 +103,7 @@ export default function PlaceReviews({ placeId }: { placeId: string }) {
             </option>
           ))}
         </select>
-        <textarea
-          className="input min-h-20"
-          placeholder={t.comment}
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-        />
+        <textarea className="input min-h-20" placeholder={t.comment} value={comment} onChange={(e) => setComment(e.target.value)} />
         <button className="btn-primary" type="submit" disabled={pending}>
           {pending ? t.saving : t.submit}
         </button>
@@ -116,4 +122,3 @@ export default function PlaceReviews({ placeId }: { placeId: string }) {
     </section>
   );
 }
-

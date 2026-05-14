@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { trackClientEvent } from "@/components/analytics-tracker";
 import { useAuth } from "@/components/auth-provider";
 
 function NavLink({ href, label, active }: { href: string; label: string; active: boolean }) {
@@ -139,6 +140,7 @@ export default function SideMenu() {
               target="_blank"
               rel="noreferrer"
               className="block overflow-hidden rounded-xl border border-slate-200 bg-white"
+              onClick={() => trackClientEvent("support_channel_click", { source: "side_menu", channel: "kakao" })}
             >
               <img src="/banners/kakao-openchat.svg" alt="카카오톡 오픈채팅 문의 채널" className="h-auto w-full" />
             </a>
@@ -147,6 +149,7 @@ export default function SideMenu() {
               target="_blank"
               rel="noreferrer"
               className="block overflow-hidden rounded-xl border border-slate-200 bg-white"
+              onClick={() => trackClientEvent("support_channel_click", { source: "side_menu", channel: "line" })}
             >
               <img src="/banners/line-openchat.svg" alt="라인 오픈챗 문의 채널" className="h-auto w-full" />
             </a>
@@ -155,6 +158,7 @@ export default function SideMenu() {
               target="_blank"
               rel="noreferrer"
               className="block overflow-hidden rounded-xl border border-slate-200 bg-white"
+              onClick={() => trackClientEvent("support_channel_click", { source: "side_menu", channel: "telegram" })}
             >
               <img src="/banners/telegram-contact.svg" alt="텔레그램 문의 채널" className="h-auto w-full" />
             </a>

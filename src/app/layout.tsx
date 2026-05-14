@@ -11,8 +11,19 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://th-guide.vercel.app"),
   title: "Thailand Guide",
   description: "Thailand traveler community platform",
+  openGraph: {
+    title: "Thailand Guide",
+    description: "Thailand traveler community platform",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Thailand Guide",
+    description: "Thailand traveler community platform",
+  },
 };
 
 export default function RootLayout({

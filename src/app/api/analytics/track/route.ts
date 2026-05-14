@@ -10,6 +10,10 @@ const ALLOWED_EVENTS = new Set([
   "review_submit_complete",
   "signup_complete",
   "route_mode_change",
+  "place_edit_request_submit_start",
+  "place_share_click",
+  "place_save_click",
+  "support_channel_click",
 ]);
 
 export async function POST(req: NextRequest) {

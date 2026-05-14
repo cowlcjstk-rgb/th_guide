@@ -1,9 +1,14 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import MapPlanner from "@/components/map-planner";
 import { countBy, inferThaiCity } from "@/lib/geo";
 import { getPublishedPlaces } from "@/lib/supabase";
 
 export const revalidate = 300;
+export const metadata: Metadata = {
+  title: "태국 지도 플래너 | Thailand Guide",
+  description: "여러 장소를 선택해 실제 이동 동선을 만들고 공유하세요.",
+};
 
 export default async function MapPage() {
   const places = await getPublishedPlaces({ limit: 500 });

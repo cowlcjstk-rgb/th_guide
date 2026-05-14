@@ -1,3 +1,4 @@
+﻿import type { Metadata } from "next";
 import PlacesCatalog from "@/components/places-catalog";
 import { inferThaiCity } from "@/lib/geo";
 import { fromFilterSlug, toFilterSlug } from "@/lib/places-seo";
@@ -20,6 +21,26 @@ export async function generateStaticParams() {
       const [city, category] = item.split("||");
       return { city: toFilterSlug(city), category: toFilterSlug(category) };
     });
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ city: string; category: string }>;
+}): Promise<Metadata> {
+  const { city: citySlug, category: categorySlug } = await params;
+  const city = fromFilterSlug(citySlug);
+  const category = fromFilterSlug(categorySlug);
+  const title = `${city} ${category} 추천 | 태국 여행자 커뮤니티`;
+  const description = `${city} 지역의 ${category} 장소를 지도 기반으로 빠르게 탐색하세요.`;
+  const path = `/places/city/${citySlug}/category/${categorySlug}`;
+  return {
+    title,
+    description,
+    alternates: { canonical: path },
+    openGraph: { title, description, url: path, type: "website" },
+    twitter: { card: "summary", title, description },
+  };
 }
 
 export default async function PlacesByCityCategoryPage({
@@ -48,7 +69,7 @@ export default async function PlacesByCityCategoryPage({
         <h1 className="text-2xl font-semibold tracking-tight">
           장소 탐색 · {city} · {category}
         </h1>
-        <p className="mt-2 text-sm text-slate-600">도시+카테고리 고정 SEO 페이지입니다.</p>
+        <p className="mt-2 text-sm text-slate-600">도시 + 카테고리 조합 SEO 페이지입니다.</p>
       </section>
       <PlacesCatalog places={places} initialCity={city} initialCategory={category} />
     </div>

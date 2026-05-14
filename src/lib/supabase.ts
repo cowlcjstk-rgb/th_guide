@@ -89,3 +89,49 @@ export async function getTopApprovedTripPlans(limit = 5): Promise<TripPlan[]> {
   if (error || !data) return [];
   return data as TripPlan[];
 }
+
+export async function getPopularPlaces(limit = 6): Promise<Place[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return mockPlaces.slice(0, limit);
+
+  const [placesRes, reviewsRes] = await Promise.all([
+    supabase
+      .from("places")
+      .select("*")
+      .eq("is_published", true)
+      .order("is_featured", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(700),
+    supabase.from("place_reviews").select("place_id,rating,created_at").limit(5000),
+  ]);
+
+  const places = (placesRes.data ?? []) as Place[];
+  if (places.length === 0) return [];
+
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const scoreMap = new Map<string, number>();
+  const countMap = new Map<string, number>();
+
+  (reviewsRes.data ?? []).forEach((row) => {
+    const placeId = String(row.place_id);
+    const created = row.created_at ? new Date(row.created_at).getTime() : 0;
+    const weight = created >= thirtyDaysAgo ? 1.6 : 1.0;
+    const rating = Number(row.rating ?? 0);
+    scoreMap.set(placeId, (scoreMap.get(placeId) ?? 0) + rating * weight);
+    countMap.set(placeId, (countMap.get(placeId) ?? 0) + 1);
+  });
+
+  const ranked = places
+    .map((place) => {
+      const baseScore = scoreMap.get(place.id) ?? 0;
+      const count = countMap.get(place.id) ?? 0;
+      const featuredBoost = place.is_featured ? 1.2 : 0;
+      const score = baseScore + count * 0.8 + featuredBoost;
+      return { place, score };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((item) => item.place);
+
+  return ranked;
+}

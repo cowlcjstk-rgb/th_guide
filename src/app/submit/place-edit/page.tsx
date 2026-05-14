@@ -36,6 +36,12 @@ export default function PlaceEditRequestPage() {
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState("");
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const q = new URL(window.location.href).searchParams.get("q")?.trim() ?? "";
+    if (q && !keyword) setKeyword(q);
+  }, [keyword]);
+
   const t =
     lang === "ko"
       ? {

@@ -1,9 +1,14 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import PlacesCatalog from "@/components/places-catalog";
 import { countBy, inferThaiCity } from "@/lib/geo";
 import { getPublishedPlaces } from "@/lib/supabase";
 
 export const revalidate = 300;
+export const metadata: Metadata = {
+  title: "태국 장소 탐색 | Thailand Guide",
+  description: "도시/카테고리 필터로 태국 장소를 빠르게 탐색하세요.",
+};
 
 export default async function PlacesPage() {
   const initialPlaces = await getPublishedPlaces({ limit: 160 });
