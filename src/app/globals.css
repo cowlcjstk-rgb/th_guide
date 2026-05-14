@@ -2,16 +2,15 @@
 @import "maplibre-gl/dist/maplibre-gl.css";
 
 :root {
-  --background: #f3f5f7;
-  --foreground: #0f172a;
-  --panel: #ffffffcc;
-  --line: #d7dfe8;
-  --brand: #0f172a;
-  --brand-soft: #e2e8f0;
-  --accent-mint: #0f766e;
-  --accent-mint-soft: #ccfbf1;
-  --accent-sand: #92400e;
-  --accent-sand-soft: #fef3c7;
+  --background: #f4f7fb;
+  --foreground: #0b1220;
+  --panel: rgba(255, 255, 255, 0.82);
+  --line: #dce3ef;
+  --line-strong: #cfd8e8;
+  --brand: #0b1220;
+  --brand-soft: #eef3ff;
+  --accent: #1d4ed8;
+  --accent-soft: #dbeafe;
 }
 
 @theme inline {
@@ -25,6 +24,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), "Noto Sans KR", sans-serif;
+  letter-spacing: -0.01em;
 }
 
 a {
@@ -34,41 +34,42 @@ a {
 
 .mesh-bg {
   background:
-    radial-gradient(circle at 0% 10%, #dff2ff 0%, transparent 35%),
-    radial-gradient(circle at 82% 0%, #fef3c7 0%, transparent 28%),
-    radial-gradient(circle at 20% 70%, #ccfbf1 0%, transparent 32%),
-    linear-gradient(180deg, #f7fafc 0%, #eff3f7 100%);
+    radial-gradient(circle at 90% 8%, #e7efff 0%, transparent 36%),
+    radial-gradient(circle at 10% 85%, #e9f2ff 0%, transparent 34%),
+    linear-gradient(180deg, #f7f9fd 0%, #f2f5fb 100%);
 }
 
 .panel {
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-strong);
   background: var(--panel);
-  backdrop-filter: blur(8px);
-  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  border-radius: 18px;
+  box-shadow: 0 10px 32px -28px rgba(9, 23, 54, 0.42);
 }
 
 .card {
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 18px;
   background: #fff;
-  transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+  transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+  box-shadow: 0 10px 26px -24px rgba(15, 23, 42, 0.45);
 }
 
 .card:hover {
-  transform: translateY(-1px);
-  border-color: #b8c5d5;
-  box-shadow: 0 12px 25px -18px rgba(15, 23, 42, 0.45);
+  transform: translateY(-2px);
+  border-color: #bcc9de;
+  box-shadow: 0 16px 30px -20px rgba(8, 19, 43, 0.34);
 }
 
 .chip {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  border: 1px solid #cbd5e1;
-  padding: 0.25rem 0.6rem;
+  border: 1px solid #d4dded;
+  padding: 0.28rem 0.65rem;
   font-size: 0.75rem;
-  color: #334155;
-  background: #f8fafc;
+  color: #314156;
+  background: #f8fbff;
 }
 
 .btn-primary {
@@ -77,11 +78,18 @@ a {
   justify-content: center;
   gap: 0.5rem;
   border-radius: 12px;
-  padding: 0.65rem 1rem;
-  background: var(--brand);
+  padding: 0.66rem 1rem;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
   color: #fff;
   font-size: 0.875rem;
   font-weight: 600;
+  box-shadow: 0 10px 18px -14px rgba(15, 23, 42, 0.7);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 22px -14px rgba(15, 23, 42, 0.75);
 }
 
 .btn-secondary {
@@ -90,33 +98,49 @@ a {
   justify-content: center;
   border-radius: 12px;
   padding: 0.65rem 1rem;
-  border: 1px solid #cdd6e2;
-  background: #fff;
-  color: #0f172a;
+  border: 1px solid #d2dced;
+  background: rgba(255, 255, 255, 0.88);
+  color: #16233a;
   font-size: 0.875rem;
   font-weight: 600;
+  transition: border-color 180ms ease, background-color 180ms ease;
 }
 
-.accent-mint {
-  color: var(--accent-mint);
+.btn-secondary:hover {
+  border-color: #b9c9e4;
+  background: #fff;
 }
 
-.accent-sand {
-  color: var(--accent-sand);
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid #d1dbec;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 0.33rem 0.72rem;
+  font-size: 0.74rem;
+  color: #324862;
+}
+
+.accent-note {
+  border: 1px solid var(--accent-soft);
+  background: #f4f8ff;
+  color: #1e3a8a;
+  border-radius: 10px;
 }
 
 .input {
   width: 100%;
   border-radius: 12px;
-  border: 1px solid #d1dae5;
+  border: 1px solid #d2dceb;
   background: #fff;
   padding: 0.65rem 0.8rem;
   font-size: 0.9rem;
-  color: #0f172a;
+  color: #16233a;
 }
 
 .input:focus {
   outline: none;
-  border-color: #94a3b8;
-  box-shadow: 0 0 0 3px #e2e8f0;
+  border-color: #8fa3c6;
+  box-shadow: 0 0 0 3px #e6eefc;
 }

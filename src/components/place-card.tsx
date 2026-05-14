@@ -78,7 +78,7 @@ export default function PlaceCard({ place, disableLink = false, onClick }: Props
       {(place.tags ?? []).length > 0 ? (
         <div className="mt-3 flex flex-wrap gap-2">
           {(place.tags ?? []).slice(0, 3).map((tag) => (
-            <span key={tag} className="rounded-full border border-teal-200 bg-teal-50 px-2 py-1 text-[11px] text-teal-800">
+            <span key={tag} className="rounded-full border border-blue-100 bg-blue-50 px-2 py-1 text-[11px] text-blue-800">
               {tag}
             </span>
           ))}

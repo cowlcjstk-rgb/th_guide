@@ -11,7 +11,7 @@ function NavLink({ href, label, active }: { href: string; label: string; active:
     <Link
       href={href}
       className={`block rounded-lg px-3 py-2 text-sm transition ${
-        active ? "bg-slate-200 text-slate-900" : "text-slate-700 hover:bg-slate-100"
+        active ? "bg-blue-50 text-blue-900 ring-1 ring-blue-100" : "text-slate-700 hover:bg-slate-100"
       }`}
     >
       {label}

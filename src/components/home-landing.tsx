@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import PlaceCard from "@/components/place-card";
 import { countBy, inferThaiCity } from "@/lib/geo";
 import { toFilterSlug } from "@/lib/places-seo";
-import { HomeRecentReview } from "@/lib/supabase";
+import type { HomeRecentReview } from "@/lib/supabase";
 import { Place, TripPlan } from "@/lib/types";
 
 type Props = {
@@ -118,7 +118,7 @@ export default function HomeLanding({
         <section className="panel p-5 md:p-6">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <p className="chip">처음 오셨다면</p>
+              <p className="hero-badge">처음 오셨다면</p>
               <h2 className="mt-2 text-xl font-semibold tracking-tight">도시를 먼저 선택하고 시작해보세요</h2>
               <p className="mt-1 text-sm text-slate-600">방콕, 파타야, 치앙마이 기준으로 바로 필터된 탐색 페이지로 이동합니다.</p>
             </div>
@@ -139,10 +139,10 @@ export default function HomeLanding({
       ) : null}
 
       <section className="panel relative overflow-hidden p-5 md:p-8">
-        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_right,#d9f99d_0,transparent_30%),radial-gradient(circle_at_bottom_left,#fde68a_0,transparent_34%),radial-gradient(circle_at_center,#dbeafe_0,transparent_45%)]" />
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_right,#eaf1ff_0,transparent_42%),radial-gradient(circle_at_bottom_left,#eef4ff_0,transparent_36%)]" />
         <div className="grid gap-5 xl:grid-cols-[1.2fr_0.9fr]">
           <div>
-            <p className="chip">Thailand Traveler Community</p>
+            <p className="hero-badge">Thailand Traveler Community</p>
             <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight text-slate-900 md:text-5xl">
               태국 여행자 커뮤니티
             </h1>
@@ -186,7 +186,7 @@ export default function HomeLanding({
                 ) : null}
                 <div className="mt-3 grid gap-2">
                   {featuredRoutePoints.map((point) => (
-                    <p key={point} className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                    <p key={point} className="accent-note px-3 py-2 text-xs">
                       {point}
                     </p>
                   ))}
@@ -219,7 +219,7 @@ export default function HomeLanding({
         </div>
         <div className="mt-3 grid gap-2">
           {rollingReviews.slice(0, 5).map((review) => (
-            <div key={review.id} className="rounded-xl border border-teal-200 bg-teal-50/70 px-3 py-2 text-sm text-slate-700">
+            <div key={review.id} className="rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-sm text-slate-700">
               <span className="font-semibold">{review.nickname}</span>
               <span className="mx-1 text-slate-400">·</span>
               <span>{"★".repeat(Math.max(1, Math.min(5, Number(review.rating) || 0)))}</span>
@@ -255,7 +255,7 @@ export default function HomeLanding({
               onClick={() => setCityTab(city)}
               className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
                 cityTab === city
-                  ? "border-teal-300 bg-teal-100 text-teal-900"
+                  ? "border-blue-200 bg-blue-50 text-blue-900"
                   : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
               }`}
             >
@@ -397,4 +397,3 @@ export default function HomeLanding({
     </section>
   );
 }
-
