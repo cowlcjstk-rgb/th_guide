@@ -319,41 +319,43 @@ export default function MapView({
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return;
+    if (!map) return;
 
-    selectedMarkersRef.current.forEach((m) => m.remove());
-    selectedMarkersRef.current = [];
+    const applySelectedRoute = async () => {
+      if (!map.isStyleLoaded()) return;
 
-    const basePlaces = allPlaces ?? places;
-    const selected = basePlaces
-      .map((place) => {
-        const point = getPoint(place);
-        if (!point) return null;
-        return { place, ...point };
-      })
-      .filter((item): item is { place: Place; lng: number; lat: number } => Boolean(item))
-      .filter((item) => selectedIds.includes(item.place.id));
+      selectedMarkersRef.current.forEach((m) => m.remove());
+      selectedMarkersRef.current = [];
 
-    selected.forEach((item) => {
-      const order = selectedIds.indexOf(item.place.id) + 1;
-      const el = document.createElement("div");
-      el.className =
-        "flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow";
-      el.textContent = String(order);
-      const marker = new maplibregl.Marker({ element: el }).setLngLat([item.lng, item.lat]).addTo(map);
-      selectedMarkersRef.current.push(marker);
-    });
+      const basePlaces = allPlaces ?? places;
+      const selected = basePlaces
+        .map((place) => {
+          const point = getPoint(place);
+          if (!point) return null;
+          return { place, ...point };
+        })
+        .filter((item): item is { place: Place; lng: number; lat: number } => Boolean(item))
+        .filter((item) => selectedIds.includes(item.place.id));
 
-    const key = `${routeMode}:${selectedIds.join(",")}`;
-    if (selected.length < 2) {
-      if (map.getLayer(ROUTE_LAYER_ID)) map.removeLayer(ROUTE_LAYER_ID);
-      if (map.getSource(ROUTE_SOURCE_ID)) map.removeSource(ROUTE_SOURCE_ID);
-      lastRouteKeyRef.current = "";
-      onRouteSummaryChangeRef.current?.(null);
-      return;
-    }
+      selected.forEach((item) => {
+        const order = selectedIds.indexOf(item.place.id) + 1;
+        const el = document.createElement("div");
+        el.className =
+          "flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow";
+        el.textContent = String(order);
+        const marker = new maplibregl.Marker({ element: el }).setLngLat([item.lng, item.lat]).addTo(map);
+        selectedMarkersRef.current.push(marker);
+      });
 
-    const renderRoute = async () => {
+      const key = `${routeMode}:${selectedIds.join(",")}`;
+      if (selected.length < 2) {
+        if (map.getLayer(ROUTE_LAYER_ID)) map.removeLayer(ROUTE_LAYER_ID);
+        if (map.getSource(ROUTE_SOURCE_ID)) map.removeSource(ROUTE_SOURCE_ID);
+        lastRouteKeyRef.current = "";
+        onRouteSummaryChangeRef.current?.(null);
+        return;
+      }
+
       let coords: [number, number][] = selected.map((p) => [p.lng, p.lat]);
       let distanceM = 0;
       let durationS = 0;
@@ -422,7 +424,13 @@ export default function MapView({
       }
     };
 
-    void renderRoute();
+    if (!map.isStyleLoaded()) {
+      map.once("load", () => {
+        void applySelectedRoute();
+      });
+      return;
+    }
+    void applySelectedRoute();
   }, [allPlaces, places, selectedIds, routeMode]);
 
   return <div ref={containerRef} className="h-[68vh] min-h-[420px] w-full rounded-2xl border border-slate-200 bg-slate-50" />;
