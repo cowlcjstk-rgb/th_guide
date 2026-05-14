@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import AppShell from "@/components/app-shell";
 import { AuthProvider } from "@/components/auth-provider";
 import { LanguageProvider } from "@/components/language-provider";
+import { SavedPlacesProvider } from "@/components/saved-places-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,9 +36,11 @@ export default function RootLayout({
     <html lang="ko" className={`${geistSans.variable} h-full antialiased`}>
       <body suppressHydrationWarning className="mesh-bg min-h-full text-slate-900">
         <AuthProvider>
-          <LanguageProvider>
-            <AppShell>{children}</AppShell>
-          </LanguageProvider>
+          <SavedPlacesProvider>
+            <LanguageProvider>
+              <AppShell>{children}</AppShell>
+            </LanguageProvider>
+          </SavedPlacesProvider>
         </AuthProvider>
       </body>
     </html>

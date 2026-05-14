@@ -1,29 +1,12 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useAuth } from "@/components/auth-provider";
 import { trackClientEvent } from "@/components/analytics-tracker";
 import { useLanguage } from "@/components/language-provider";
+import { useSavedPlaces } from "@/components/saved-places-provider";
 import { Place } from "@/lib/types";
-
-const SAVED_KEY = "tg_saved_places_v1";
-
-function readSavedIds() {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(SAVED_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.map((x) => String(x)) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeSavedIds(ids: string[]) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(SAVED_KEY, JSON.stringify(ids));
-}
 
 export default function PlaceQuickActions({
   place,
@@ -33,17 +16,15 @@ export default function PlaceQuickActions({
   compact?: boolean;
 }) {
   const { lang } = useLanguage();
-  const [saved, setSaved] = useState(false);
+  const { user } = useAuth();
+  const { isSaved, toggleSaved } = useSavedPlaces();
 
   const detailUrl = useMemo(() => {
     if (typeof window === "undefined") return `/place/${place.slug}`;
     return `${window.location.origin}/place/${place.slug}`;
   }, [place.slug]);
 
-  useEffect(() => {
-    const ids = readSavedIds();
-    setSaved(ids.includes(place.id));
-  }, [place.id]);
+  const saved = user?.role === "member" ? isSaved(place.id) : false;
 
   async function sharePlace() {
     const payload = {
@@ -66,27 +47,32 @@ export default function PlaceQuickActions({
     }
   }
 
-  function toggleSave() {
-    const ids = readSavedIds();
-    const exists = ids.includes(place.id);
-    const next = exists ? ids.filter((id) => id !== place.id) : [...ids, place.id];
-    writeSavedIds(next);
-    setSaved(!exists);
+  async function onToggleSaved() {
+    if (user?.role !== "member") return;
+    await toggleSaved(place.id);
     trackClientEvent("place_save_click", {
       place_id: place.id,
       slug: place.slug,
-      action: exists ? "unsave" : "save",
+      action: saved ? "unsave" : "save",
     });
   }
 
   return (
     <div className={`mt-3 flex flex-wrap gap-2 ${compact ? "text-xs" : "text-sm"}`}>
-      <button type="button" className="btn-secondary !px-2 !py-1" onClick={toggleSave}>
-        {saved ? (lang === "ko" ? "저장됨" : "Saved") : (lang === "ko" ? "저장" : "Save")}
-      </button>
+      {user?.role === "member" ? (
+        <button type="button" className="btn-secondary !px-2 !py-1" onClick={onToggleSaved}>
+          {saved ? (lang === "ko" ? "저장됨" : "Saved") : lang === "ko" ? "저장" : "Save"}
+        </button>
+      ) : (
+        <Link href="/auth/login" className="btn-secondary !px-2 !py-1">
+          {lang === "ko" ? "로그인 후 저장" : "Login to save"}
+        </Link>
+      )}
+
       <button type="button" className="btn-secondary !px-2 !py-1" onClick={sharePlace}>
         {lang === "ko" ? "공유" : "Share"}
       </button>
+
       <Link
         href={`/submit/place-edit?q=${encodeURIComponent(place.name)}`}
         className="btn-secondary !px-2 !py-1"
