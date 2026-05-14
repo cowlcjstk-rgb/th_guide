@@ -51,18 +51,63 @@ function randomRating() {
   return 5;
 }
 
-const REVIEW_COMMENTS = [
-  "동선이 깔끔하고 처음 방문자도 찾기 쉬웠어요.",
-  "직접 가보니 분위기와 서비스가 기대 이상이었습니다.",
-  "가격 대비 만족도가 높은 편이라 재방문 의사 있어요.",
-  "사진보다 실제가 더 좋았고 접근성도 괜찮았습니다.",
-  "주말 저녁은 대기 있을 수 있으니 시간 조절 추천해요.",
-  "친구랑 방문했는데 이동 동선이 편하고 주변 코스 연결이 좋아요.",
-  "혼자 가도 부담 없고 직원 응대가 친절한 편이었어요.",
-  "비오는 날에도 실내 동선이 괜찮아서 이용하기 편했습니다.",
-  "관광객 기준으로도 설명이 쉬워서 첫 태국 여행에 좋습니다.",
-  "근처 다른 장소와 묶어서 가기 좋아서 하루 코스로 추천해요.",
+const KOR_NICKNAMES = [
+  "여행토끼",
+  "방콕러버",
+  "푸켓가자",
+  "카페탐험가",
+  "야시장매니아",
+  "길위의민지",
+  "맛집헌터",
+  "노을좋아",
+  "치앙마이좋아",
+  "태국한달살기",
 ];
+
+const ENG_NICKNAMES = [
+  "TravelMike",
+  "LunaNomad",
+  "MapleWander",
+  "CityHopper",
+  "RoadAndRice",
+  "SkylineJade",
+  "BackpackNate",
+  "TropicalMia",
+];
+
+const ALNUM_NICKNAMES = [
+  "jinny88",
+  "roam23",
+  "thaiwalker77",
+  "mango_trip91",
+  "sunset404",
+  "eunseo_22",
+  "guideboy55",
+  "nina1004",
+];
+
+function randomNickname() {
+  const bucket = Math.random();
+  if (bucket < 0.34) return pick(KOR_NICKNAMES);
+  if (bucket < 0.67) return pick(ENG_NICKNAMES);
+  return pick(ALNUM_NICKNAMES);
+}
+
+function buildSeoReview(place) {
+  const city = toCity(place.city);
+  const category = place.category || "태국 여행";
+  const templates = [
+    `${city} 여행 일정에서 ${place.name} 방문했는데 위치가 좋아 동선 짜기 편했습니다. ${category} 찾는 분들께 추천합니다.`,
+    `${place.name}는 실제로 가보니 후기보다 분위기가 더 좋았어요. ${city} 자유여행 코스로 넣기 좋고 재방문 의사 있습니다.`,
+    `태국 ${city}에서 ${category} 찾는다면 ${place.name} 추천해요. 직원 응대가 괜찮고 주변 이동도 편해서 만족했습니다.`,
+    `${place.name} 후기 보고 방문했는데 사진 스팟도 많고 만족도 높았습니다. ${city} 여행 초보도 찾기 쉬운 위치입니다.`,
+    `${city} 여행 중 ${place.name} 들렀는데 대기 시간만 피하면 정말 괜찮아요. ${category} 기준으로 가성비 좋은 편입니다.`,
+    `I visited ${place.name} during my ${city} trip. Great stop for ${category}, and the location is easy for first-time travelers.`,
+    `${place.name} was one of the best picks on my Thailand itinerary. Clean place, friendly staff, and easy access in ${city}.`,
+    `For anyone planning a ${city} travel route, ${place.name} is worth saving. Good vibe and convenient nearby transit.`,
+  ];
+  return pick(templates);
+}
 
 loadDotEnv(path.resolve(process.cwd(), ".env.local"));
 
@@ -131,9 +176,9 @@ for (const place of top50) {
   for (let i = 0; i < count; i += 1) {
     reviewRows.push({
       place_id: place.id,
-      nickname: `TG Seed ${i + 1}`,
+      nickname: randomNickname(),
       rating: randomRating(),
-      comment: pick(REVIEW_COMMENTS),
+      comment: buildSeoReview(place),
       created_at: new Date(Date.now() - Math.floor(Math.random() * 90) * 86_400_000).toISOString(),
     });
   }
@@ -148,9 +193,19 @@ for (let i = 0; i < reviewRows.length; i += 400) {
   }
 }
 
-const clearSeedPlans = await supabase.from("trip_plans").delete().eq("submitted_by", "TG Seed Bot");
-if (clearSeedPlans.error) {
-  console.error("seed plan cleanup failed:", clearSeedPlans.error.message);
+const [clearSeedPlansByAuthor, clearSeedPlansByDesc] = await Promise.all([
+  supabase.from("trip_plans").delete().eq("submitted_by", "TG Seed Bot"),
+  supabase
+    .from("trip_plans")
+    .delete()
+    .eq("description", "Bangkok/Thailand traveler-curated sample route for community launch."),
+]);
+if (clearSeedPlansByAuthor.error) {
+  console.error("seed plan cleanup failed(author):", clearSeedPlansByAuthor.error.message);
+  process.exit(1);
+}
+if (clearSeedPlansByDesc.error) {
+  console.error("seed plan cleanup failed(desc):", clearSeedPlansByDesc.error.message);
   process.exit(1);
 }
 
@@ -174,11 +229,12 @@ for (let i = 0; i < 20; i += 1) {
   const picks = sample(source, Math.min(stopCount, source.length));
   if (picks.length < 2) continue;
   const categoryMix = [...new Set(picks.map((p) => p.category || "General"))].slice(0, 2).join(" · ");
+  const author = randomNickname();
   routeRows.push({
-    title: `${city} 추천 코스 ${String(i + 1).padStart(2, "0")}`,
-    description: `${city}에서 이동하기 쉬운 장소를 묶은 커뮤니티 추천 코스입니다. (${categoryMix})`,
-    extra_info: "대중교통 + 도보 기준으로 이동하면 편합니다.",
-    submitted_by: "TG Seed Bot",
+    title: `${city} 실사용 추천 코스 ${String(i + 1).padStart(2, "0")}`,
+    description: "Bangkok/Thailand traveler-curated sample route for community launch.",
+    extra_info: "피크 시간대(18~21시) 피하면 이동이 훨씬 편합니다.",
+    submitted_by: author,
     status: "approved",
     place_ids: picks.map((p) => p.id),
     created_at: new Date(Date.now() - Math.floor(Math.random() * 45) * 86_400_000).toISOString(),
