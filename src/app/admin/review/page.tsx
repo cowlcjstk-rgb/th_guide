@@ -14,6 +14,25 @@ type QueueResponse = {
 
 type Tab = "places" | "edits" | "plans";
 
+function formatBytes(bytes?: number | null) {
+  if (!bytes || !Number.isFinite(bytes)) return null;
+  const units = ["B", "KB", "MB", "GB"];
+  let value = bytes;
+  let idx = 0;
+  while (value >= 1024 && idx < units.length - 1) {
+    value /= 1024;
+    idx += 1;
+  }
+  return `${value.toFixed(idx === 0 ? 0 : 1)} ${units[idx]}`;
+}
+
+function renderChangeValue(value: unknown) {
+  if (Array.isArray(value)) return value.join(", ");
+  if (value && typeof value === "object") return JSON.stringify(value);
+  if (value == null) return "-";
+  return String(value);
+}
+
 export default function AdminReviewPage() {
   const searchParams = useSearchParams();
   const initialTab = (searchParams.get("tab") as Tab | null) ?? "places";
@@ -126,6 +145,10 @@ export default function AdminReviewPage() {
                           <div key={image.id} className="rounded-xl border border-slate-200 bg-slate-50 p-2">
                             <img src={image.image_url} alt="submission" className="h-36 w-full rounded-lg object-cover" loading="lazy" />
                             <p className="mt-2 text-[11px] text-slate-500">상태: {image.moderation_status}</p>
+                            {image.file_name ? <p className="mt-1 text-[11px] text-slate-500">파일: {image.file_name}</p> : null}
+                            {formatBytes(image.file_size_bytes ?? null) ? (
+                              <p className="mt-1 text-[11px] text-slate-500">용량: {formatBytes(image.file_size_bytes ?? null)}</p>
+                            ) : null}
                             <div className="mt-2 flex gap-2">
                               <button className="btn-primary !px-2 !py-1 !text-xs" onClick={() => updateItem("image", image.id, "approve")}>이미지 승인</button>
                               <button className="btn-secondary !px-2 !py-1 !text-xs" onClick={() => updateItem("image", image.id, "reject")}>이미지 반려</button>
@@ -152,6 +175,7 @@ export default function AdminReviewPage() {
             {editRequests.map((request) => {
               const place = placeById[request.place_id];
               const changes = (request.requested_changes ?? {}) as Record<string, unknown>;
+              const requestedImageUrl = typeof changes.image_url === "string" ? changes.image_url : "";
               return (
                 <article key={request.id} className="rounded-xl border border-slate-200 bg-white p-4">
                   <p className="text-sm font-semibold text-slate-900">{place?.name ?? "Unknown place"}</p>
@@ -162,11 +186,18 @@ export default function AdminReviewPage() {
                     <p className="mb-2 font-semibold text-slate-900">변경 요청 항목</p>
                     {Object.entries(changes).map(([key, value]) => (
                       <p key={key}>
-                        {key}: {Array.isArray(value) ? value.join(", ") : String(value)}
+                        {key}: {renderChangeValue(value)}
                       </p>
                     ))}
                     {Object.keys(changes).length === 0 ? <p>요청 데이터 없음</p> : null}
                   </div>
+
+                  {requestedImageUrl ? (
+                    <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">요청 이미지 미리보기</p>
+                      <img src={requestedImageUrl} alt="requested update" className="h-40 w-full rounded-lg object-cover md:h-52" loading="lazy" />
+                    </div>
+                  ) : null}
 
                   <div className="mt-3 flex gap-2">
                     <button className="btn-primary" onClick={() => updateItem("edit", request.id, "approve")}>수정 승인</button>

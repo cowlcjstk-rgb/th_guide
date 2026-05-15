@@ -38,6 +38,8 @@ NEXT_PUBLIC_MAPTILER_KEY=
 AUTH_SECRET=
 NIGHTLIFE_PLATFORM_URL=
 NEXT_PUBLIC_NIGHTLIFE_PLATFORM_URL=
+PLACE_IMAGE_MAX_FILE_MB=6
+PLACE_IMAGE_TOTAL_QUOTA_MB=2048
 ```
 
 Run:
@@ -60,6 +62,7 @@ Run SQL in Supabase SQL editor:
 - If the DB already exists, run additional migration:
   - `supabase/upgrade_pending_workflow.sql`
   - `supabase/upgrade_search_route_analytics.sql`
+  - `supabase/upgrade_place_submission_image_meta.sql`
 
 ## Hydration warning note
 

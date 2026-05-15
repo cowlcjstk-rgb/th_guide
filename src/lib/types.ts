@@ -47,6 +47,12 @@ export type PlaceSubmissionImage = {
   place_id: string;
   image_url: string;
   moderation_status: "pending" | "approved" | "rejected";
+  storage_bucket?: string | null;
+  storage_path?: string | null;
+  file_name?: string | null;
+  mime_type?: string | null;
+  file_size_bytes?: number | null;
+  uploaded_by_member_id?: string | null;
   review_note: string | null;
   reviewed_at: string | null;
   created_at: string;

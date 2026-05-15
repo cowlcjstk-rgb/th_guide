@@ -13,7 +13,37 @@ const ALLOWED_FIELDS = new Set([
   "google_map_url",
   "tips",
   "tags",
+  "image_url",
+  "image_upload",
 ]);
+
+type IncomingImageUpload = {
+  url?: string;
+  bucket?: string;
+  path?: string;
+  file_name?: string;
+  mime_type?: string;
+  file_size_bytes?: number;
+};
+
+function normalizeImageUpload(upload: unknown) {
+  if (!upload || typeof upload !== "object") return null;
+  const raw = upload as IncomingImageUpload;
+  const url = typeof raw.url === "string" ? raw.url.trim() : "";
+  if (!url) return null;
+
+  return {
+    url,
+    bucket: typeof raw.bucket === "string" ? raw.bucket.trim() : "",
+    path: typeof raw.path === "string" ? raw.path.trim() : "",
+    file_name: typeof raw.file_name === "string" ? raw.file_name.trim() : "",
+    mime_type: typeof raw.mime_type === "string" ? raw.mime_type.trim() : "",
+    file_size_bytes:
+      typeof raw.file_size_bytes === "number" && Number.isFinite(raw.file_size_bytes) && raw.file_size_bytes >= 0
+        ? Math.round(raw.file_size_bytes)
+        : 0,
+  };
+}
 
 export async function POST(req: NextRequest) {
   const limited = applyRateLimit(req, "submissions:place-edits", { max: 12, windowMs: 60_000 });
@@ -27,16 +57,24 @@ export async function POST(req: NextRequest) {
     submitted_by?: string;
     reason?: string;
     requested_changes?: Record<string, unknown>;
+    image_upload?: IncomingImageUpload | null;
   };
 
   const placeId = body.place_id?.trim();
   if (!placeId) return NextResponse.json({ error: "place_id is required" }, { status: 400 });
 
-  const rawChanges = body.requested_changes ?? {};
+  const rawChanges = { ...(body.requested_changes ?? {}) };
+  const topImageUpload = normalizeImageUpload(body.image_upload);
+  if (topImageUpload) {
+    if (!rawChanges.image_upload) rawChanges.image_upload = topImageUpload;
+    if (!rawChanges.image_url) rawChanges.image_url = topImageUpload.url;
+  }
+
   const requestedChanges: Record<string, unknown> = {};
   for (const [key, raw] of Object.entries(rawChanges)) {
     if (!ALLOWED_FIELDS.has(key)) continue;
     if (raw == null) continue;
+
     if (key === "tags") {
       const tags = Array.isArray(raw)
         ? raw.map((v) => String(v).trim()).filter(Boolean).slice(0, 30)
@@ -48,6 +86,22 @@ export async function POST(req: NextRequest) {
       if (tags.length > 0) requestedChanges.tags = tags;
       continue;
     }
+
+    if (key === "image_upload") {
+      const imageUpload = normalizeImageUpload(raw);
+      if (imageUpload) {
+        requestedChanges.image_upload = imageUpload;
+        if (!requestedChanges.image_url) requestedChanges.image_url = imageUpload.url;
+      }
+      continue;
+    }
+
+    if (key === "image_url") {
+      const imageUrl = String(raw).trim();
+      if (imageUrl) requestedChanges.image_url = imageUrl;
+      continue;
+    }
+
     const value = String(raw).trim();
     if (!value) continue;
     requestedChanges[key] = value;
