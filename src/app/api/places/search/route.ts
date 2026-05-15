@@ -6,10 +6,30 @@ export const dynamic = "force-dynamic";
 const PLACE_SELECT =
   "id,name,slug,city,description,address,district,category,tags,latitude,longitude,google_map_url,thumbnail,tips,is_published,is_featured,submission_status,submitted_by,last_verified_at,created_at,updated_at";
 
+type SearchMode = "fts-prefix" | "ilike";
+
 function toInt(input: string | null, fallback: number, min: number, max: number) {
   const parsed = Number(input ?? fallback);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(max, Math.max(min, Math.floor(parsed)));
+}
+
+function sanitizeFilterText(input: string) {
+  return input
+    .replace(/[,%]/g, " ")
+    .replace(/[\r\n]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildPrefixTsQuery(input: string) {
+  const terms = sanitizeFilterText(input)
+    .split(" ")
+    .map((term) => term.replace(/[':!*&|()<>]/g, "").trim())
+    .filter(Boolean);
+
+  if (terms.length === 0) return "";
+  return terms.map((term) => `${term}:*`).join(" & ");
 }
 
 export async function GET(req: NextRequest) {
@@ -20,11 +40,13 @@ export async function GET(req: NextRequest) {
   const q = (params.get("q") || "").trim();
   const city = (params.get("city") || "all").trim();
   const category = (params.get("category") || "all").trim();
-  const safeCity = city.replaceAll(",", " ").trim();
+  const safeCity = sanitizeFilterText(city);
+  const safeKeyword = sanitizeFilterText(q);
+  const prefixTsQuery = buildPrefixTsQuery(q);
   const limit = toInt(params.get("limit"), 60, 1, 200);
   const offset = toInt(params.get("offset"), 0, 0, 50_000);
 
-  const runQuery = async (useSearchDocument: boolean, useCityColumn: boolean) => {
+  const runQuery = async (mode: SearchMode, useCityColumn: boolean) => {
     const select = useCityColumn ? PLACE_SELECT : PLACE_SELECT.replace("city,", "");
     let query = supabase
       .from("places")
@@ -34,18 +56,22 @@ export async function GET(req: NextRequest) {
     if (useCityColumn && city !== "all") query = query.eq("city", city);
     if (category !== "all") query = query.eq("category", category);
     if (city !== "all" && safeCity) {
-      query = query.or(
-        `city.eq.${safeCity},address.ilike.%${safeCity}%,district.ilike.%${safeCity}%`
-      );
+      const cityFilters = [
+        useCityColumn ? `city.eq.${safeCity}` : null,
+        `address.ilike.%${safeCity}%`,
+        `district.ilike.%${safeCity}%`,
+      ]
+        .filter(Boolean)
+        .join(",");
+      if (cityFilters) query = query.or(cityFilters);
     }
 
     if (q) {
-      if (useSearchDocument) {
-        query = query.textSearch("search_document", q, { type: "websearch", config: "simple" });
+      if (mode === "fts-prefix" && prefixTsQuery) {
+        query = query.filter("search_document", "fts", prefixTsQuery);
       } else {
-        const safe = q.replaceAll(",", " ").replaceAll("%", "");
         query = query.or(
-          `name.ilike.%${safe}%,description.ilike.%${safe}%,address.ilike.%${safe}%,district.ilike.%${safe}%`
+          `name.ilike.%${safeKeyword}%,description.ilike.%${safeKeyword}%,address.ilike.%${safeKeyword}%,district.ilike.%${safeKeyword}%`
         );
       }
     }
@@ -56,14 +82,19 @@ export async function GET(req: NextRequest) {
       .range(offset, offset + limit);
   };
 
-  let { data, error } = await runQuery(true, true);
+  let { data, error } = await runQuery("fts-prefix", true);
   if (error?.message?.includes("search_document")) {
-    const fallback = await runQuery(false, true);
+    const fallback = await runQuery("ilike", true);
+    data = fallback.data;
+    error = fallback.error;
+  } else if (!error && q && (data?.length ?? 0) === 0) {
+    // Prefix FTS misses are retried with ILIKE so partial text (e.g. 아시아 -> 아시아티크) always appears.
+    const fallback = await runQuery("ilike", true);
     data = fallback.data;
     error = fallback.error;
   }
   if (error?.message?.includes("column places.city does not exist")) {
-    const fallback = await runQuery(false, false);
+    const fallback = await runQuery("ilike", false);
     data = fallback.data;
     error = fallback.error;
   }
