@@ -32,6 +32,11 @@ type SearchResponse = {
 };
 
 const PAGE_SIZE = 120;
+const SEARCH_DEBOUNCE_MS = 260;
+
+function sanitizeText(input: string) {
+  return input.trim();
+}
 
 const MapView = dynamic(() => import("@/components/map-view"), {
   ssr: false,
@@ -78,38 +83,44 @@ export default function PlacesCatalog({ places: initialPlaces, initialCity, init
   useEffect(() => {
     if (onlyInViewport) return;
 
+    const controller = new AbortController();
     const timer = setTimeout(async () => {
       setLoading(true);
       try {
         const params = new URLSearchParams({
-          q: keyword,
+          q: sanitizeText(keyword),
+          city,
           category,
           limit: String(PAGE_SIZE),
           offset: "0",
         });
 
-        const res = await fetch(`/api/places/search?${params.toString()}`);
+        const res = await fetch(`/api/places/search?${params.toString()}`, { signal: controller.signal });
         const data = (await res.json()) as SearchResponse;
         if (!res.ok) return;
 
         setRows(Array.isArray(data.places) ? data.places : []);
         setTotal(Number(data.page?.total ?? data.places?.length ?? 0));
         setHasMore(Boolean(data.page?.has_more));
+      } catch (error) {
+        if ((error as { name?: string })?.name !== "AbortError") {
+          console.error("places search failed", error);
+        }
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
-    }, 260);
+    }, SEARCH_DEBOUNCE_MS);
 
-    return () => clearTimeout(timer);
-  }, [keyword, category, onlyInViewport]);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [keyword, city, category, onlyInViewport]);
 
   useEffect(() => {
-    if (!onlyInViewport || !viewportBounds) {
-      setBoundsPlaces(null);
-      setBoundsClusters([]);
-      return;
-    }
+    if (!onlyInViewport || !viewportBounds) return;
 
+    const controller = new AbortController();
     const timer = setTimeout(async () => {
       setLoading(true);
       try {
@@ -118,26 +129,34 @@ export default function PlacesCatalog({ places: initialPlaces, initialCity, init
           minLat: String(viewportBounds.minLat),
           maxLng: String(viewportBounds.maxLng),
           maxLat: String(viewportBounds.maxLat),
+          city,
           category,
-          q: keyword,
+          q: sanitizeText(keyword),
           limit: "2200",
           cluster: "true",
           zoom: String(Math.round(viewportBounds.zoom)),
         });
 
-        const res = await fetch(`/api/places/bounds?${params.toString()}`);
+        const res = await fetch(`/api/places/bounds?${params.toString()}`, { signal: controller.signal });
         const data = (await res.json()) as { places?: Place[]; clusters?: BoundsCluster[] };
         if (!res.ok) return;
 
         setBoundsPlaces(Array.isArray(data.places) ? data.places : []);
         setBoundsClusters(Array.isArray(data.clusters) ? data.clusters : []);
+      } catch (error) {
+        if ((error as { name?: string })?.name !== "AbortError") {
+          console.error("places bounds search failed", error);
+        }
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
-    }, 260);
+    }, SEARCH_DEBOUNCE_MS);
 
-    return () => clearTimeout(timer);
-  }, [onlyInViewport, viewportBounds, category, keyword]);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [onlyInViewport, viewportBounds, city, category, keyword]);
 
   const filtered = useMemo(() => {
     const source = onlyInViewport ? boundsPlaces ?? [] : rows;
@@ -180,7 +199,8 @@ export default function PlacesCatalog({ places: initialPlaces, initialCity, init
     setLoadingMore(true);
     try {
       const params = new URLSearchParams({
-        q: keyword,
+        q: sanitizeText(keyword),
+        city,
         category,
         limit: String(PAGE_SIZE),
         offset: String(rows.length),

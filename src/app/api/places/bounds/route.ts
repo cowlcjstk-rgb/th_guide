@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase-admin";
+import { Place } from "@/lib/types";
 
 function parseNumber(value: string | null) {
   if (!value) return null;
   const num = Number(value);
   return Number.isFinite(num) ? num : null;
+}
+
+function sanitizeFilterText(input: string) {
+  return input
+    .replace(/[,%]/g, " ")
+    .replace(/[\r\n]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export async function GET(req: NextRequest) {
@@ -21,7 +30,10 @@ export async function GET(req: NextRequest) {
   const city = params.get("city");
   const district = params.get("district");
   const category = params.get("category");
-  const keyword = (params.get("q") || "").trim();
+  const safeCity = sanitizeFilterText(city ?? "");
+  const safeDistrict = sanitizeFilterText(district ?? "");
+  const safeCategory = sanitizeFilterText(category ?? "");
+  const keyword = sanitizeFilterText(params.get("q") || "");
   const limit = Math.min(Math.max(Number(params.get("limit") || 1200), 50), 3000);
   const withCluster = params.get("cluster") === "true";
   const zoom = Math.max(0, Math.min(22, Number(params.get("zoom") || 10)));
@@ -30,41 +42,64 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Bounds are required" }, { status: 400 });
   }
 
-  const runQuery = async (useCityColumn: boolean) => {
-    const sb: any = supabase;
-    let query = sb
-    .from("places")
-    .select(
-      useCityColumn
-        ? "id,name,slug,city,description,address,district,category,tags,latitude,longitude,google_map_url,thumbnail,tips,is_published,is_featured,created_at,updated_at"
-        : "id,name,slug,description,address,district,category,tags,latitude,longitude,google_map_url,thumbnail,tips,is_published,is_featured,created_at,updated_at"
-    )
-    .eq("is_published", true)
-    .not("latitude", "is", null)
-    .not("longitude", "is", null)
-    .gte("longitude", minLng as number)
-    .lte("longitude", maxLng as number)
-    .gte("latitude", minLat as number)
-    .lte("latitude", maxLat as number)
-    .limit(limit);
+  const runQueryWithCity = async () => {
+    let query = supabase
+      .from("places")
+      .select(
+        "id,name,slug,city,description,address,district,category,tags,latitude,longitude,google_map_url,thumbnail,tips,is_published,is_featured,created_at,updated_at"
+      )
+      .eq("is_published", true)
+      .not("latitude", "is", null)
+      .not("longitude", "is", null)
+      .gte("longitude", minLng as number)
+      .lte("longitude", maxLng as number)
+      .gte("latitude", minLat as number)
+      .lte("latitude", maxLat as number)
+      .limit(limit);
 
-    if (useCityColumn && city && city !== "all") query = query.eq("city", city);
-    if (district && district !== "all") query = query.eq("district", district);
-    if (category && category !== "all") query = query.eq("category", category);
-    if (keyword) {
-      query = query.or(`name.ilike.%${keyword}%,description.ilike.%${keyword}%`);
-    }
+    if (safeCity && safeCity !== "all") query = query.eq("city", safeCity);
+    if (safeDistrict && safeDistrict !== "all") query = query.eq("district", safeDistrict);
+    if (safeCategory && safeCategory !== "all") query = query.eq("category", safeCategory);
+    if (keyword) query = query.or(`name.ilike.%${keyword}%,description.ilike.%${keyword}%`);
+
     return query.order("is_featured", { ascending: false }).order("created_at", { ascending: false });
   };
 
-  let { data, error } = await runQuery(true);
+  const runQueryWithoutCity = async () => {
+    let query = supabase
+      .from("places")
+      .select(
+        "id,name,slug,description,address,district,category,tags,latitude,longitude,google_map_url,thumbnail,tips,is_published,is_featured,created_at,updated_at"
+      )
+      .eq("is_published", true)
+      .not("latitude", "is", null)
+      .not("longitude", "is", null)
+      .gte("longitude", minLng as number)
+      .lte("longitude", maxLng as number)
+      .gte("latitude", minLat as number)
+      .lte("latitude", maxLat as number)
+      .limit(limit);
+
+    if (safeDistrict && safeDistrict !== "all") query = query.eq("district", safeDistrict);
+    if (safeCategory && safeCategory !== "all") query = query.eq("category", safeCategory);
+    if (keyword) query = query.or(`name.ilike.%${keyword}%,description.ilike.%${keyword}%`);
+
+    return query.order("is_featured", { ascending: false }).order("created_at", { ascending: false });
+  };
+
+  type RawPlace = Pick<Place, "longitude" | "latitude" | "category" | "city"> & Record<string, unknown>;
+
+  const primary = await runQueryWithCity();
+  let error = primary.error;
+  let placesRaw = (primary.data ?? []) as RawPlace[];
+
   if (error?.message?.includes("column places.city does not exist")) {
-    const fallback = await runQuery(false);
-    data = fallback.data;
+    const fallback = await runQueryWithoutCity();
     error = fallback.error;
+    placesRaw = (fallback.data ?? []) as RawPlace[];
   }
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  const places = data ?? [];
+  const places = placesRaw;
 
   if (!withCluster) {
     return NextResponse.json({ places });
@@ -76,7 +111,7 @@ export async function GET(req: NextRequest) {
     { count: number; latSum: number; lngSum: number; sampleCategory: string; sampleCity: string }
   >();
 
-  places.forEach((place: Record<string, unknown>) => {
+  places.forEach((place) => {
     const lng = Number(place.longitude);
     const lat = Number(place.latitude);
     if (!Number.isFinite(lng) || !Number.isFinite(lat)) return;
